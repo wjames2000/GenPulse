@@ -7,7 +7,7 @@
 [![Genkit](https://img.shields.io/badge/Genkit-Go_SDK-blue?style=flat)](https://firebase.google.com/docs/genkit-go)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-English | [中文](#README_cn.md)
+English | [中文](https://github.com/wjames2000/GenPulse/blob/main/README_cn.md)
 
 ---
 
