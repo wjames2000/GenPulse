@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GenPulse AI - 认知实验室 Kanban</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#26286c",
+                        "surface-dim": "#131318",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed": "#e1e0ff",
+                        "on-primary-fixed-variant": "#2623d1",
+                        "surface-variant": "#35343a",
+                        "on-tertiary-fixed": "#331100",
+                        "surface-container-low": "#1b1b20",
+                        "surface-container-high": "#2a292f",
+                        "on-tertiary": "#542100",
+                        "primary": "#c0c1ff",
+                        "tertiary-fixed": "#ffdbca",
+                        "on-error": "#690005",
+                        "surface-container-lowest": "#0e0e13",
+                        "secondary-fixed-dim": "#c0c1ff",
+                        "on-tertiary-container": "#fffcff",
+                        "on-primary": "#0d00aa",
+                        "background": "#131318",
+                        "tertiary-fixed-dim": "#ffb68f",
+                        "primary-container": "#5b5fff",
+                        "surface-container": "#1f1f25",
+                        "on-tertiary-fixed-variant": "#773200",
+                        "inverse-primary": "#4345e8",
+                        "on-surface-variant": "#c6c4d8",
+                        "inverse-on-surface": "#303036",
+                        "tertiary": "#ffb68f",
+                        "surface": "#131318",
+                        "outline": "#908fa1",
+                        "on-primary-fixed": "#05006c",
+                        "surface-container-highest": "#35343a",
+                        "outline-variant": "#454555",
+                        "secondary-container": "#3f4287",
+                        "on-background": "#e4e1e9",
+                        "error": "#ffb4ab",
+                        "secondary-fixed": "#e1e0ff",
+                        "on-secondary-container": "#afb2ff",
+                        "on-secondary-fixed": "#0e0f58",
+                        "on-primary-container": "#fffcff",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-surface": "#e4e1e9",
+                        "inverse-surface": "#e4e1e9",
+                        "secondary": "#c0c1ff",
+                        "error-container": "#93000a",
+                        "surface-tint": "#c0c1ff",
+                        "on-secondary-fixed-variant": "#3d3f84",
+                        "surface-bright": "#39383e",
+                        "tertiary-container": "#c05500"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .liquid-glass {
+            background-color: rgba(53, 52, 58, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        .ghost-border {
+            box-shadow: inset 1px 1px 0 rgba(69, 69, 85, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col md:flex-row overflow-hidden">
+<!-- Mobile Top Navigation (md:hidden) -->
+<header class="md:hidden bg-[#131318]/80 dark:bg-[#131318]/80 backdrop-blur-xl text-[#5B5FFF] dark:text-[#C0C1FF] font-['Inter'] tracking-tight text-sm fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#1B1B20] no-border tonal-shift flat no shadows">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary cursor-pointer hover:bg-[#35343a]/60 hover:text-[#C0C1FF] transition-all duration-200 active:scale-95 transition-transform p-2 rounded-lg">menu</span>
+<div class="text-lg font-bold tracking-tighter text-[#C0C1FF] uppercase">GenPulse AI</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#908FA1] hover:bg-[#35343a]/60 hover:text-[#C0C1FF] transition-all duration-200 active:scale-95 transition-transform p-2 rounded-lg cursor-pointer">notifications</span>
+<span class="material-symbols-outlined text-[#908FA1] hover:bg-[#35343a]/60 hover:text-[#C0C1FF] transition-all duration-200 active:scale-95 transition-transform p-2 rounded-lg cursor-pointer">terminal</span>
+<img alt="Lead Architect Profile" class="w-8 h-8 rounded-full object-cover ml-2 ring-2 ring-primary/30" data-alt="professional portrait of a confident lead software architect in a softly lit high-tech office environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8_Hw8V3OK67bYn3Z7w2F78bQz1beW0e8cyq2LXLE6HZFgNjZuPViAlBX5NMthTmv95ZTuOnwsFE2ArJxxkWYwGafgFimnf5iB6IBN1rhzZFxvvEn_tvWTfZenE4b1T09x7DLTQEJ97VB5kP3zM1Vxqkkz-JHug7FicMzH65D_ALDgJQCDKUJ__Hv95e0YetLSyWgf49y72JzSMgV-ithhpDyibSCCv2TMmizhfP7Rjyqr8Xh1gmgTU_Of6IflZ8It93cvv-ndvrly"/>
+</div>
+</header>
+<!-- SideNavBar (Web - hidden md:flex) -->
+<nav class="hidden md:flex flex-col bg-[#131318] dark:bg-[#131318] text-[#5B5FFF] dark:text-[#C0C1FF] font-['Inter'] label-sm font-medium uppercase tracking-widest h-screen w-64 border-r-0 bg-[#1B1B20] tonal-layering shadow-[24px_0_48px_rgba(0,0,0,0.4)] fixed left-0 top-0 h-full py-8 z-40">
+<!-- Header -->
+<div class="px-6 mb-8 flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-container to-inverse-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">science</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xl font-black text-[#C0C1FF] tracking-tight">Cognitive Lab</span>
+<span class="text-[0.6875rem] text-outline font-medium tracking-wider uppercase mt-0.5">AI Dev Environment</span>
+</div>
+</div>
+<!-- Main Navigation -->
+<div class="flex-1 flex flex-col gap-1 overflow-y-auto mt-4">
+<!-- Active Tab: Orchestrator (编排者 map to 项目流水线 for this kanban view conceptually, but using JSON exact names if present. Since the prompt asks for translated side nav: 控制面板, 项目流水线, 模型管理, 智能体, 系统设置) -->
+<!-- Wait, instructions say: "Side navigation translated to Chinese (控制面板, 项目流水线, 模型管理, 智能体, 系统设置)." -->
+<!-- I will map these to the JSON structure provided while maintaining the style. -->
+<a class="flex items-center gap-3 text-[#908FA1] px-6 py-3 opacity-70 hover:bg-[#35343a] hover:opacity-100 transition-opacity ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>控制面板</span>
+</a>
+<a class="flex items-center gap-3 bg-gradient-to-r from-[#5B5FFF]/20 to-transparent text-[#C0C1FF] border-l-4 border-[#5B5FFF] px-6 py-3 ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span>项目流水线</span>
+</a>
+<a class="flex items-center gap-3 text-[#908FA1] px-6 py-3 opacity-70 hover:bg-[#35343a] hover:opacity-100 transition-opacity ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined">psychology</span>
+<span>模型管理</span>
+</a>
+<a class="flex items-center gap-3 text-[#908FA1] px-6 py-3 opacity-70 hover:bg-[#35343a] hover:opacity-100 transition-opacity ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<span>智能体</span>
+</a>
+<a class="flex items-center gap-3 text-[#908FA1] px-6 py-3 opacity-70 hover:bg-[#35343a] hover:opacity-100 transition-opacity ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>系统设置</span>
+</a>
+</div>
+<!-- CTA & Footer -->
+<div class="px-6 mt-auto flex flex-col gap-4">
+<button class="w-full py-3 px-4 rounded-lg bg-gradient-to-br from-primary-container to-inverse-primary text-on-primary-container font-medium text-[0.6875rem] uppercase tracking-widest hover:brightness-110 transition-all duration-200 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                New Agent
+            </button>
+<div class="h-px bg-outline-variant/30 my-2"></div>
+<a class="flex items-center gap-3 text-[#908FA1] py-2 opacity-70 hover:text-[#C0C1FF] hover:opacity-100 transition-colors ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined text-sm">menu_book</span>
+<span class="text-[0.6875rem]">Documentation</span>
+</a>
+<a class="flex items-center gap-3 text-[#908FA1] py-2 opacity-70 hover:text-[#C0C1FF] hover:opacity-100 transition-colors ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined text-sm text-success" style="color: #4ADE80;">monitor_heart</span>
+<span class="text-[0.6875rem]">System Health</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 bg-surface-container-low min-h-screen pt-16 md:pt-0 flex flex-col relative">
+<!-- Web Top Header (Reconstructed from JSON for Web layout integration) -->
+<div class="hidden md:flex sticky top-0 z-30 bg-surface-container-low/90 backdrop-blur-md h-20 items-center justify-between px-8 no-border tonal-shift">
+<div class="flex flex-col">
+<h1 class="text-[1.5rem] font-semibold font-['Inter'] text-on-surface tracking-tight">GenPulse v2.4 部署</h1>
+<span class="text-[0.875rem] text-outline font-mono">流水线 ID: #PL-8892A</span>
+</div>
+<div class="flex items-center gap-6">
+<!-- Status Pulse -->
+<div class="flex items-center gap-3 px-4 py-2 rounded-full bg-surface-container-highest ghost-border">
+<div class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-40" style="background-color: #4ADE80;"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-success" style="background-color: #4ADE80;"></span>
+</div>
+<span class="text-[0.6875rem] font-['Inter'] font-medium uppercase tracking-widest text-on-surface">系统运行中</span>
+</div>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg text-outline hover:bg-surface-container-highest hover:text-primary transition-all duration-200">
+<span class="material-symbols-outlined">terminal</span>
+</button>
+<button class="p-2 rounded-lg text-outline hover:bg-surface-container-highest hover:text-primary transition-all duration-200">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<button class="px-5 py-2.5 rounded-lg bg-gradient-to-br from-primary-container to-inverse-primary text-on-primary-container font-medium text-sm hover:brightness-110 transition-all duration-200 shadow-[0_8px_16px_rgba(91,95,255,0.2)]">
+                    Deploy Pipeline
+                </button>
+<img alt="Lead Architect Profile" class="w-10 h-10 rounded-full object-cover ring-2 ring-primary/30" data-alt="professional portrait of a confident lead software architect in a softly lit high-tech office environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJyq-ckjpjjqKpjbzz9p45_Dei-naZt8j1CGi4EVCxKNAdz4pHHWf_ESoKdzzp2x1wxGthxj8hMgr0IJTY_Fq40A-jjbRkTxyTalb7F7Nw5SUvVxV7WVw0QeFbvPbdDsqcm3_sfPY02_CHYGNs0V6Jp_PwUxeuu7lsZQwtYgtxIw_mHLal03jlcdMdX9Z2GWsOTPE7G4f68-R9YryTgpFkpKAKqGAA-lFzcxDxYUCv1YOu4H9cTTqV9qZ1zs07JzDwS7mzIepImGIH"/>
+</div>
+</div>
+<!-- Kanban Board Area -->
+<div class="flex-1 overflow-x-auto p-6 md:p-8">
+<div class="flex gap-6 min-w-max h-full pb-8">
+<!-- Column 1: 编排者 (Orchestrator) -->
+<div class="w-80 flex flex-col gap-4">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center ghost-border">
+<span class="material-symbols-outlined text-primary text-sm">psychology</span>
+</div>
+<h2 class="text-[0.875rem] font-semibold text-on-surface uppercase tracking-wide">编排者</h2>
+</div>
+<span class="text-[0.75rem] font-mono text-outline bg-surface-container-highest px-2 py-1 rounded-md">2</span>
+</div>
+<!-- Task Card -->
+<div class="liquid-glass rounded-xl p-5 flex flex-col gap-4 ghost-border hover:bg-surface-container-highest transition-colors duration-200 cursor-pointer group">
+<div class="flex justify-between items-start">
+<span class="text-[0.6875rem] font-['Inter'] font-medium uppercase tracking-widest text-primary bg-primary/10 px-2 py-1 rounded-md">分析中</span>
+<span class="material-symbols-outlined text-outline text-sm opacity-0 group-hover:opacity-100 transition-opacity">more_horiz</span>
+</div>
+<div>
+<h3 class="text-base font-semibold text-on-surface mb-2">需求解析</h3>
+<p class="text-sm text-on-surface-variant font-mono line-clamp-2">Parsing user input defining generic auth flow into architecture components...</p>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center border border-surface-container-low text-[0.6rem] text-primary">AI</div>
+</div>
+<div class="flex items-center gap-1 text-outline">
+<span class="material-symbols-outlined text-[1rem]">forum</span>
+<span class="text-[0.75rem] font-mono">12</span>
+</div>
+</div>
+</div>
+<!-- Task Card -->
+<div class="liquid-glass rounded-xl p-5 flex flex-col gap-4 ghost-border hover:bg-surface-container-highest transition-colors duration-200 cursor-pointer group">
+<div class="flex justify-between items-start">
+<span class="text-[0.6875rem] font-['Inter'] font-medium uppercase tracking-widest text-secondary bg-secondary/10 px-2 py-1 rounded-md">待处理</span>
+</div>
+<div>
+<h3 class="text-base font-semibold text-on-surface mb-2">依赖图谱构建</h3>
+<p class="text-sm text-on-surface-variant font-mono line-clamp-2">Map internal dependencies for microservices routing.</p>
+</div>
+</div>
+</div>
+<!-- Column 2: 架构师 (Architect) -->
+<div class="w-80 flex flex-col gap-4">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center ghost-border">
+<span class="material-symbols-outlined text-tertiary text-sm">architecture</span>
+</div>
+<h2 class="text-[0.875rem] font-semibold text-on-surface uppercase tracking-wide">架构师</h2>
+</div>
+<span class="text-[0.75rem] font-mono text-outline bg-surface-container-highest px-2 py-1 rounded-md">1</span>
+</div>
+<!-- Active Agent Card (Thought Bubble Style) -->
+<div class="bg-surface-container-high rounded-xl rounded-tl-sm p-5 flex flex-col gap-4 relative overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
+<!-- Active Pulse overlay -->
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<div class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</div>
+<span class="text-[0.6875rem] font-['Inter'] font-medium uppercase tracking-widest text-primary">生成中...</span>
+</div>
+</div>
+<div>
+<h3 class="text-base font-semibold text-on-surface mb-2">数据库 Schema 设计</h3>
+<div class="bg-surface-container-lowest p-3 rounded-lg border-l-2 border-primary mt-3">
+<code class="text-[0.75rem] font-mono text-primary-fixed-dim block">CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  email VARCHAR(255) UNIQUE
+);</code>
+</div>
+</div>
+</div>
+</div>
+<!-- Column 3: 开发人员 (Developers) -->
+<div class="w-80 flex flex-col gap-4">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center ghost-border">
+<span class="material-symbols-outlined text-success text-sm" style="color: #4ADE80;">code</span>
+</div>
+<h2 class="text-[0.875rem] font-semibold text-on-surface uppercase tracking-wide">开发人员</h2>
+</div>
+<span class="text-[0.75rem] font-mono text-outline bg-surface-container-highest px-2 py-1 rounded-md">3</span>
+</div>
+<!-- Task Card -->
+<div class="liquid-glass rounded-xl p-5 flex flex-col gap-4 ghost-border hover:bg-surface-container-highest transition-colors duration-200 cursor-pointer group">
+<div class="flex justify-between items-start">
+<span class="text-[0.6875rem] font-['Inter'] font-medium uppercase tracking-widest text-on-surface-variant bg-surface-container-highest px-2 py-1 rounded-md">已完成</span>
+<span class="material-symbols-outlined text-success text-sm" style="color: #4ADE80;">check_circle</span>
+</div>
+<div>
+<h3 class="text-base font-semibold text-on-surface mb-2 line-through opacity-70">API 路由生成</h3>
+<p class="text-sm text-on-surface-variant font-mono line-clamp-1 opacity-70">Express.js route scaffolding completed.</p>
+</div>
+</div>
+<!-- Task Card -->
+<div class="liquid-glass rounded-xl p-5 flex flex-col gap-4 ghost-border hover:bg-surface-container-highest transition-colors duration-200 cursor-pointer group">
+<div class="flex justify-between items-start">
+<span class="text-[0.6875rem] font-['Inter'] font-medium uppercase tracking-widest text-on-surface-variant bg-surface-container-highest px-2 py-1 rounded-md">已完成</span>
+<span class="material-symbols-outlined text-success text-sm" style="color: #4ADE80;">check_circle</span>
+</div>
+<div>
+<h3 class="text-base font-semibold text-on-surface mb-2 line-through opacity-70">认证中间件</h3>
+<p class="text-sm text-on-surface-variant font-mono line-clamp-1 opacity-70">JWT validation middleware implemented.</p>
+</div>
+</div>
+</div>
+<!-- Column 4: 质量保障 (QA) -->
+<div class="w-80 flex flex-col gap-4">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center ghost-border">
+<span class="material-symbols-outlined text-error text-sm">fact_check</span>
+</div>
+<h2 class="text-[0.875rem] font-semibold text-on-surface uppercase tracking-wide">质量保障</h2>
+</div>
+<span class="text-[0.75rem] font-mono text-outline bg-surface-container-highest px-2 py-1 rounded-md">1</span>
+</div>
+<!-- Diff View Card -->
+<div class="liquid-glass rounded-xl p-5 flex flex-col gap-4 ghost-border border-l-2 border-error-container">
+<div class="flex justify-between items-start">
+<span class="text-[0.6875rem] font-['Inter'] font-medium uppercase tracking-widest text-error bg-error-container/20 px-2 py-1 rounded-md">测试失败</span>
+</div>
+<div>
+<h3 class="text-base font-semibold text-on-surface mb-2">集成测试: 登录流</h3>
+<div class="mt-3 bg-surface-container-lowest rounded-md overflow-hidden font-mono text-[0.7rem]">
+<div class="bg-error-container/20 text-error px-3 py-1 flex items-center gap-2">
+<span class="opacity-50">-</span>
+<span>expect(res.status).toBe(200);</span>
+</div>
+<div class="bg-primary-container/15 text-primary px-3 py-1 flex items-center gap-2">
+<span class="opacity-50">+</span>
+<span>expect(res.status).toBe(401); // Unauthorized fallback</span>
+</div>
+</div>
+</div>
+<div class="flex gap-2 mt-2">
+<button class="flex-1 py-2 rounded bg-surface-container-highest text-[0.75rem] font-medium hover:bg-surface-bright transition-colors text-on-surface">查看日志</button>
+<button class="flex-1 py-2 rounded bg-primary-container/20 text-primary text-[0.75rem] font-medium hover:bg-primary-container/30 transition-colors">重新运行</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Genpulse AI 软件项目开发流水线 - Agent 监控仪表盘</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-fixed": "#e1e0ff",
+                        "tertiary-container": "#c05500",
+                        "secondary-container": "#3f4287",
+                        "secondary-fixed-dim": "#c0c1ff",
+                        "on-tertiary-fixed": "#331100",
+                        "inverse-surface": "#e4e1e9",
+                        "secondary": "#c0c1ff",
+                        "surface-tint": "#c0c1ff",
+                        "outline": "#908fa1",
+                        "on-secondary-container": "#afb2ff",
+                        "tertiary": "#ffb68f",
+                        "on-error-container": "#ffdad6",
+                        "background": "#131318",
+                        "on-tertiary-container": "#fffcff",
+                        "on-tertiary": "#542100",
+                        "inverse-primary": "#4345e8",
+                        "tertiary-fixed-dim": "#ffb68f",
+                        "surface-container-low": "#1b1b20",
+                        "primary-fixed": "#e1e0ff",
+                        "on-secondary": "#26286c",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "inverse-on-surface": "#303036",
+                        "surface-container": "#1f1f25",
+                        "on-tertiary-fixed-variant": "#773200",
+                        "on-primary-fixed": "#05006c",
+                        "on-error": "#690005",
+                        "surface-container-highest": "#35343a",
+                        "surface-bright": "#39383e",
+                        "on-primary-fixed-variant": "#2623d1",
+                        "on-secondary-fixed-variant": "#3d3f84",
+                        "surface": "#131318",
+                        "surface-container-lowest": "#0e0e13",
+                        "primary-container": "#5b5fff",
+                        "primary": "#c0c1ff",
+                        "error-container": "#93000a",
+                        "on-primary": "#0d00aa",
+                        "surface-container-high": "#2a292f",
+                        "error": "#ffb4ab",
+                        "on-surface-variant": "#c6c4d8",
+                        "on-primary-container": "#fffcff",
+                        "surface-variant": "#35343a",
+                        "surface-dim": "#131318",
+                        "on-secondary-fixed": "#0e0f58",
+                        "tertiary-fixed": "#ffdbca",
+                        "outline-variant": "#454555",
+                        "on-surface": "#e4e1e9",
+                        "on-background": "#e4e1e9",
+                        "success": "#4ADE80"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "Microsoft YaHei", "sans-serif"],
+                        "body": ["Inter", "Microsoft YaHei", "sans-serif"],
+                        "label": ["Inter", "Microsoft YaHei", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', 'Microsoft YaHei', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .glass-panel {
+            background-color: rgba(53, 52, 58, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .text-display-sm { font-size: 2.25rem; letter-spacing: -0.02em; line-height: 2.5rem; }
+        .pulse-dot {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="docked left-0 h-screen w-64 rounded-r-none bg-[#1B1B20] dark:bg-[#1B1B20] text-[#5B5FFF] dark:text-[#C0C1FF] font-['Inter'] text-sm tracking-wide uppercase font-medium shadow-[24px_0_48px_rgba(0,0,0,0.4)] fixed left-0 top-0 h-full flex flex-col pt-20 pb-8 z-40 hidden md:flex border-none">
+<div class="px-6 mb-8 flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#5B5FFF] to-[#4345e8] flex items-center justify-center text-on-primary-container font-bold text-lg">G</div>
+<div>
+<div class="text-[#5B5FFF] font-black tracking-tighter normal-case text-lg leading-tight">Cognitive Lab</div>
+<div class="text-[0.65rem] text-outline tracking-wider uppercase mt-0.5">V2.4 Active</div>
+</div>
+</div>
+<div class="px-4 mb-6">
+<button class="w-full bg-gradient-to-br from-[#5B5FFF] to-[#4345e8] text-on-primary-container rounded-lg py-2.5 px-4 font-semibold hover:brightness-110 transition-all duration-200 flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span class="normal-case">New Pipeline</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto space-y-1">
+<a class="text-neutral-500 hover:text-neutral-200 py-3 px-4 flex items-center space-x-3 hover:bg-[#2A292F] transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-[#C0C1FF] transition-colors">science</span>
+<span>认知实验室</span>
+</a>
+<a class="bg-[#35343a] text-[#C0C1FF] border-l-4 border-[#5B5FFF] rounded-none py-3 px-4 flex items-center space-x-3 group relative" href="#">
+<div class="absolute inset-0 bg-success/5 pointer-events-none"></div>
+<span class="material-symbols-outlined text-[20px] text-[#5B5FFF]" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+<span>项目流水线</span>
+</a>
+<a class="text-neutral-500 hover:text-neutral-200 py-3 px-4 flex items-center space-x-3 hover:bg-[#2A292F] transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-[#C0C1FF] transition-colors">history</span>
+<span>开发历史</span>
+</a>
+<a class="text-neutral-500 hover:text-neutral-200 py-3 px-4 flex items-center space-x-3 hover:bg-[#2A292F] transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-[#C0C1FF] transition-colors">psychology</span>
+<span>神经资产</span>
+</a>
+<a class="text-neutral-500 hover:text-neutral-200 py-3 px-4 flex items-center space-x-3 hover:bg-[#2A292F] transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-[#C0C1FF] transition-colors">settings</span>
+<span>系统设置</span>
+</a>
+</div>
+<div class="mt-auto px-4 space-y-1">
+<a class="text-neutral-500 hover:text-neutral-200 py-2.5 px-4 flex items-center space-x-3 hover:bg-[#2A292F] transition-colors duration-200 text-xs" href="#">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span>Documentation</span>
+</a>
+<a class="text-neutral-500 hover:text-neutral-200 py-2.5 px-4 flex items-center space-x-3 hover:bg-[#2A292F] transition-colors duration-200 text-xs" href="#">
+<span class="material-symbols-outlined text-[18px]">help</span>
+<span>Support</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-64 bg-background min-h-screen overflow-hidden">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-6 sticky top-0 z-50 bg-[#131318] dark:bg-[#131318] text-[#5B5FFF] dark:text-[#C0C1FF] font-['Inter'] font-semibold tracking-tight text-sm docked full-width top-0 h-16 bg-[#1B1B20] border-none flat no shadows">
+<div class="flex items-center">
+<div class="text-xl font-bold bg-gradient-to-br from-[#5B5FFF] to-[#4345e8] bg-clip-text text-transparent mr-8 md:hidden">Genpulse AI</div>
+<div class="relative hidden md:flex items-center text-outline-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined absolute left-3 text-[18px]">search</span>
+<input class="bg-surface-container-lowest border-none rounded-DEFAULT pl-10 pr-4 py-1.5 text-sm text-on-surface focus:ring-0 focus:border-b-2 focus:border-b-primary placeholder:text-outline w-64 transition-all focus:bg-surface-container-low outline-none h-8" placeholder="Search cognitive assets..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<button class="text-neutral-400 font-medium hover:bg-[#35343a] transition-all duration-200 ease-in-out p-1.5 rounded-DEFAULT flex items-center justify-center scale-98 active:opacity-80 transition-transform">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="text-neutral-400 font-medium hover:bg-[#35343a] transition-all duration-200 ease-in-out p-1.5 rounded-DEFAULT flex items-center justify-center scale-98 active:opacity-80 transition-transform">
+<span class="material-symbols-outlined text-[20px]">extension</span>
+</button>
+<div class="h-4 w-px bg-outline-variant/30 mx-2"></div>
+<span class="text-outline text-xs">English</span>
+<button class="bg-primary-container text-on-primary-container px-4 py-1.5 rounded-lg text-sm font-semibold hover:brightness-110 transition-all scale-98 active:opacity-80 transition-transform flex items-center space-x-1.5 ml-4">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+<span>Deploy Agent</span>
+</button>
+<img alt="User Profile" class="w-8 h-8 rounded-full ml-4 border border-outline-variant/20 object-cover" data-alt="close-up portrait of a professional individual in dramatic studio lighting, minimalist background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdoUMeunNd_Bxqh8uMqXYnfrfdq3UpyzNin_HwFiqxER-HxNyCDsk4o_bCOfm1XDtIGlZ7lWL_uuerYXwpbnkOZzZ75RgaZnpoSdslPHAFpRNWuss-g6crIZ-wOJjljFCF_KTeTePK6SWZ-29Lo8QK1VDQaevldI_81L76uZ_-HYL_O0aEFVxCZN8ZfMeosGTl85Ug01N220xwJaHF-lfWnSA8j2U8rnQ9Nk3wVOZaTkhE4emPkWGCOmpNCumI4kL8WFSujaO5PeBd"/>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 flex overflow-hidden p-6 gap-6">
+<!-- Left Column: Dashboard & Timeline -->
+<div class="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
+<!-- Page Header -->
+<div>
+<h1 class="text-display-sm font-bold text-on-surface mb-1">Agent 监控仪表盘</h1>
+<p class="text-outline text-sm">项目：E-commerce Core API Refactoring <span class="mx-2 text-outline-variant">|</span> 状态：<span class="text-success inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>运行中</span></p>
+</div>
+<!-- Agent Status Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Card 1: Orchestrator -->
+<div class="bg-surface-container-low rounded-xl p-5 relative overflow-hidden group hover:bg-surface-container transition-colors">
+<div class="absolute inset-0 bg-success/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-4 relative z-10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center border border-outline-variant/15">
+<span class="material-symbols-outlined text-primary text-[20px]">account_tree</span>
+</div>
+<div>
+<div class="text-xs text-outline uppercase font-semibold tracking-wider mb-0.5">Orchestrator</div>
+<div class="text-sm font-medium text-on-surface">编排者</div>
+</div>
+</div>
+<div class="relative flex items-center justify-center w-6 h-6">
+<span class="absolute w-2 h-2 rounded-full bg-success"></span>
+<span class="absolute w-full h-full rounded-full border-2 border-success/30 pulse-dot"></span>
+</div>
+</div>
+<div class="relative z-10">
+<div class="text-xs text-outline mb-2">当前任务</div>
+<div class="text-sm text-on-surface-variant font-medium leading-snug mb-4 h-10 line-clamp-2">分析项目需求并分配微服务架构任务至各开发节点</div>
+<div class="flex items-center justify-between text-xs">
+<span class="text-primary font-mono">14m 23s</span>
+<span class="text-outline font-mono">80%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full mt-2 overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[80%]"></div>
+</div>
+</div>
+</div>
+<!-- Card 2: Architect -->
+<div class="bg-surface-container-low rounded-xl p-5 relative overflow-hidden group hover:bg-surface-container transition-colors">
+<div class="flex justify-between items-start mb-4 relative z-10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center border border-outline-variant/15">
+<span class="material-symbols-outlined text-tertiary text-[20px]">architecture</span>
+</div>
+<div>
+<div class="text-xs text-outline uppercase font-semibold tracking-wider mb-0.5">Architect</div>
+<div class="text-sm font-medium text-on-surface">架构师</div>
+</div>
+</div>
+<div class="relative flex items-center justify-center w-6 h-6">
+<span class="absolute w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="absolute w-full h-full rounded-full border-2 border-tertiary/30 pulse-dot"></span>
+</div>
+</div>
+<div class="relative z-10">
+<div class="text-xs text-outline mb-2">当前任务</div>
+<div class="text-sm text-on-surface-variant font-medium leading-snug mb-4 h-10 line-clamp-2">设计用户认证模块的数据流图与数据库 schema</div>
+<div class="flex items-center justify-between text-xs">
+<span class="text-tertiary font-mono">08m 45s</span>
+<span class="text-outline font-mono">45%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full mt-2 overflow-hidden">
+<div class="h-full bg-tertiary rounded-full w-[45%]"></div>
+</div>
+</div>
+</div>
+<!-- Card 3: Backend Dev -->
+<div class="bg-surface-container-lowest border border-outline-variant/15 rounded-xl p-5 relative overflow-hidden">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center opacity-70">
+<span class="material-symbols-outlined text-outline text-[20px]">terminal</span>
+</div>
+<div>
+<div class="text-xs text-outline uppercase font-semibold tracking-wider mb-0.5">Backend Dev</div>
+<div class="text-sm font-medium text-on-surface-variant">后端开发</div>
+</div>
+</div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+</div>
+<div>
+<div class="text-xs text-outline mb-2">当前任务</div>
+<div class="text-sm text-outline-variant italic leading-snug mb-4 h-10">等待架构师输出 schema 定义...</div>
+<div class="flex items-center justify-between text-xs opacity-50">
+<span class="text-outline font-mono">--:--</span>
+<span class="text-outline font-mono">0%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-low rounded-full mt-2"></div>
+</div>
+</div>
+<!-- Card 4: Frontend Dev -->
+<div class="bg-surface-container-lowest border border-outline-variant/15 rounded-xl p-5 relative overflow-hidden opacity-60">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center">
+<span class="material-symbols-outlined text-outline text-[20px]">web</span>
+</div>
+<div>
+<div class="text-xs text-outline uppercase font-semibold tracking-wider mb-0.5">Frontend Dev</div>
+<div class="text-sm font-medium text-on-surface-variant">前端开发</div>
+</div>
+</div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+</div>
+<div>
+<div class="text-xs text-outline mb-2">当前任务</div>
+<div class="text-sm text-outline-variant italic leading-snug mb-4 h-10">等待 API 接口定义...</div>
+<div class="flex items-center justify-between text-xs opacity-50">
+<span class="text-outline font-mono">--:--</span>
+<span class="text-outline font-mono">0%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-low rounded-full mt-2"></div>
+</div>
+</div>
+</div>
+<!-- Execution Timeline -->
+<div class="bg-surface-container-low rounded-xl p-6 mt-2">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-sm font-semibold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline">linear_scale</span>
+                            执行时间线
+                        </h2>
+<div class="flex items-center gap-4 text-xs font-mono text-outline">
+<span>T-0</span>
+<div class="w-32 h-px bg-outline-variant/30 relative">
+<div class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 bg-primary rounded-full"></div>
+</div>
+<span class="text-primary">Now (14m)</span>
+</div>
+</div>
+<div class="space-y-4">
+<!-- Track 1 -->
+<div class="relative h-8 flex items-center">
+<div class="w-32 text-xs text-outline shrink-0">Orchestrator</div>
+<div class="flex-1 bg-surface-container-highest h-full rounded relative">
+<div class="absolute left-0 top-1/2 -translate-y-1/2 h-5 bg-primary-fixed-dim/80 rounded-full flex items-center px-3 text-[10px] text-on-primary-fixed-variant font-mono whitespace-nowrap overflow-hidden text-ellipsis w-[25%]" style="margin-left: 2%;">init_project</div>
+<div class="absolute top-1/2 -translate-y-1/2 h-5 bg-primary/20 border border-primary/40 rounded-full flex items-center px-3 text-[10px] text-primary font-mono whitespace-nowrap overflow-hidden text-ellipsis w-[15%]" style="left: 28%;">analyze_reqs</div>
+</div>
+</div>
+<!-- Connection Line -->
+<div class="absolute h-6 border-l border-dashed border-outline/30" style="left: calc(8rem + 28%); top: calc(100% - 2.5rem);"></div>
+<!-- Track 2 -->
+<div class="relative h-8 flex items-center">
+<div class="w-32 text-xs text-outline shrink-0">Architect</div>
+<div class="flex-1 bg-surface-container-highest h-full rounded relative">
+<div class="absolute top-1/2 -translate-y-1/2 h-5 bg-tertiary-fixed-dim/80 rounded-full flex items-center px-3 text-[10px] text-on-tertiary-fixed-variant font-mono whitespace-nowrap overflow-hidden text-ellipsis w-[30%]" style="left: 28%;">design_db_schema</div>
+<!-- Current Pulse -->
+<div class="absolute top-1/2 -translate-y-1/2 h-5 bg-tertiary/20 border border-tertiary/50 rounded-full flex items-center px-3 text-[10px] text-tertiary font-mono whitespace-nowrap overflow-hidden text-ellipsis w-[20%]" style="left: 60%;">
+                                    auth_flow
+                                    <div class="absolute -right-1 w-2 h-2 rounded-full bg-tertiary shadow-[0_0_8px_rgba(255,182,143,0.8)]"></div>
+</div>
+</div>
+</div>
+<!-- Track 3 -->
+<div class="relative h-8 flex items-center opacity-50">
+<div class="w-32 text-xs text-outline shrink-0">Backend Dev</div>
+<div class="flex-1 bg-surface-container-highest h-full rounded relative">
+<div class="absolute top-1/2 -translate-y-1/2 h-5 border border-dashed border-outline-variant rounded-full w-[40%]" style="left: 60%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Lower Panel: Tabs -->
+<div class="bg-surface-container-low rounded-xl flex flex-col flex-1 min-h-[300px]">
+<div class="flex border-b border-surface-container-highest">
+<button class="px-6 py-3 text-sm font-medium text-primary border-b-2 border-primary bg-surface-container-highest/50">原始日志</button>
+<button class="px-6 py-3 text-sm font-medium text-outline hover:text-on-surface hover:bg-surface-container-highest/20 transition-colors">终端输出</button>
+<button class="px-6 py-3 text-sm font-medium text-outline hover:text-on-surface hover:bg-surface-container-highest/20 transition-colors">网络</button>
+</div>
+<div class="p-4 flex-1 bg-[#0E0E13] overflow-y-auto font-mono text-xs text-outline-variant space-y-2 rounded-b-xl">
+<div class="flex gap-3"><span class="text-outline w-20 shrink-0">[10:42:01]</span><span class="text-primary">[INFO]</span><span>Orchestrator: Spawned new task cluster 'auth_module'</span></div>
+<div class="flex gap-3"><span class="text-outline w-20 shrink-0">[10:42:03]</span><span class="text-primary">[INFO]</span><span>MessageBus: Routed prompt to Architect ID-4A9B</span></div>
+<div class="flex gap-3"><span class="text-outline w-20 shrink-0">[10:42:05]</span><span class="text-tertiary">[DEBUG]</span><span>Architect: Analyzing legacy codebase for auth dependencies...</span></div>
+<div class="flex gap-3"><span class="text-outline w-20 shrink-0">[10:42:12]</span><span class="text-success">[SUCCESS]</span><span>Architect: Legacy analysis complete. Found 3 deprecation warnings.</span></div>
+<div class="flex gap-3"><span class="text-outline w-20 shrink-0">[10:42:15]</span><span class="text-tertiary">[DEBUG]</span><span>Architect: Generating initial schema proposal...</span></div>
+<div class="flex gap-3"><span class="text-outline w-20 shrink-0">[10:42:28]</span><span class="text-outline-variant">[SYS]</span><span>Memory allocation at 64%</span></div>
+<div class="flex gap-3"><span class="text-outline w-20 shrink-0">[10:42:35]</span><span class="text-tertiary">[DEBUG]</span><span class="text-on-surface animate-pulse">Architect: Evaluating OAuth2 vs JWT implementation paths...</span></div>
+</div>
+</div>
+</div>
+<!-- Right Column: Thought Bubble (Glass Panel) -->
+<div class="w-96 shrink-0 glass-panel border-l border-outline-variant/15 flex flex-col rounded-xl overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
+<div class="p-4 border-b border-surface-container-highest flex items-center justify-between bg-surface-container-high/40">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-tertiary">psychology</span>
+<span class="text-sm font-semibold text-on-surface uppercase tracking-wide">架构师认知</span>
+</div>
+<span class="text-[10px] text-tertiary bg-tertiary/10 px-2 py-0.5 rounded-full border border-tertiary/20">推理中</span>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+<!-- Thought Bubble 1 -->
+<div class="bg-surface-container-high rounded-xl rounded-tl-sm p-4 relative border-t border-l border-outline-variant/15">
+<div class="text-xs text-outline mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+                            Internal thought
+                        </div>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                            为了确保新旧系统的兼容性，我们需要保留旧的 session_id 映射，同时引入基于 JWT 的无状态验证。
+                        </p>
+</div>
+<!-- Code Block Diff -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden border border-outline-variant/20">
+<div class="bg-surface-container-high px-3 py-1.5 text-xs text-outline font-mono flex items-center justify-between">
+<span>schema.prisma</span>
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+</div>
+<div class="p-3 font-mono text-[11px] leading-relaxed overflow-x-auto">
+<div class="text-outline-variant">model User {</div>
+<div class="text-outline-variant pl-4">id String @id @default(uuid())</div>
+<div class="bg-error-container/20 text-on-error-container pl-4 -mx-3 px-3 border-l-2 border-error/50 line-through">legacy_token String?</div>
+<div class="bg-primary-container/15 text-on-primary-container pl-4 -mx-3 px-3 border-l-2 border-primary/50">password_hash String</div>
+<div class="bg-primary-container/15 text-on-primary-container pl-4 -mx-3 px-3 border-l-2 border-primary/50">refresh_tokens RefreshToken[]</div>
+<div class="text-outline-variant pl-4">createdAt DateTime @default(now())</div>
+<div class="text-outline-variant">}</div>
+</div>
+</div>
+<!-- Thought Bubble 2 (Active) -->
+<div class="bg-surface-container-high rounded-xl rounded-tl-sm p-4 relative border-t border-l border-outline-variant/15">
+<div class="text-xs text-tertiary mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">pending</span>
+                            Formulating decision
+                        </div>
+<p class="text-sm text-on-surface leading-relaxed">
+                            考虑到前端是 React SPA，建议使用 HttpOnly cookie 存储 refresh token，内存存储 access token 以防止 XSS 攻击。正在构建最终架构文档...
+                        </p>
+<div class="mt-3 flex gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-bounce" style="animation-delay: 0ms;"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-bounce" style="animation-delay: 150ms;"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-bounce" style="animation-delay: 300ms;"></span>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<div class="p-4 bg-surface-container-high/40 border-t border-outline-variant/15">
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-none rounded-lg pl-4 pr-10 py-2.5 text-sm text-on-surface focus:ring-0 focus:border-b-2 focus:border-b-primary placeholder:text-outline transition-all focus:bg-surface-container-low outline-none h-10 shadow-inner" placeholder="干预架构师决策或提供建议..." type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-primary hover:text-primary-fixed transition-colors p-1">
+<span class="material-symbols-outlined text-[20px]">send</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(144, 143, 161, 0.2);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(144, 143, 161, 0.4);
+        }
+    </style>
+</body></html>

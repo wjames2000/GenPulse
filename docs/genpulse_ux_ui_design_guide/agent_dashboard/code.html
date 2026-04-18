@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Genpulse Agent Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#2623d1",
+                    "inverse-primary": "#4345e8",
+                    "surface-container-lowest": "#0e0e13",
+                    "on-error": "#690005",
+                    "surface-dim": "#131318",
+                    "outline": "#908fa1",
+                    "error-container": "#93000a",
+                    "on-surface-variant": "#c6c4d8",
+                    "tertiary": "#ffb68f",
+                    "on-secondary": "#26286c",
+                    "tertiary-container": "#c05500",
+                    "on-tertiary-fixed": "#331100",
+                    "on-primary-fixed": "#05006c",
+                    "secondary-container": "#3f4287",
+                    "surface-tint": "#c0c1ff",
+                    "secondary-fixed-dim": "#c0c1ff",
+                    "secondary-fixed": "#e1e0ff",
+                    "surface-container-highest": "#35343a",
+                    "tertiary-fixed": "#ffdbca",
+                    "on-tertiary-fixed-variant": "#773200",
+                    "error": "#ffb4ab",
+                    "on-primary": "#0d00aa",
+                    "inverse-on-surface": "#303036",
+                    "surface-bright": "#39383e",
+                    "on-primary-container": "#fffcff",
+                    "surface-container": "#1f1f25",
+                    "surface": "#131318",
+                    "primary-fixed-dim": "#c0c1ff",
+                    "on-tertiary": "#542100",
+                    "surface-variant": "#35343a",
+                    "secondary": "#c0c1ff",
+                    "primary-container": "#5b5fff",
+                    "on-background": "#e4e1e9",
+                    "on-secondary-container": "#afb2ff",
+                    "outline-variant": "#454555",
+                    "surface-container-low": "#1b1b20",
+                    "primary": "#c0c1ff",
+                    "inverse-surface": "#e4e1e9",
+                    "on-error-container": "#ffdad6",
+                    "on-secondary-fixed": "#0e0f58",
+                    "surface-container-high": "#2a292f",
+                    "on-surface": "#e4e1e9",
+                    "primary-fixed": "#e1e0ff",
+                    "on-secondary-fixed-variant": "#3d3f84",
+                    "tertiary-fixed-dim": "#ffb68f",
+                    "background": "#131318",
+                    "on-tertiary-container": "#fffcff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"],
+                    "mono": ["JetBrains Mono"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .liquid-glass {
+            background-color: rgba(53, 52, 58, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body h-screen w-screen overflow-hidden flex flex-col antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="bg-[#131318]/80 backdrop-blur-xl dark:bg-[#131318]/80 w-full h-14 sticky top-0 z-50 bg-[#1B1B20] border-none flex items-center justify-between px-6 shrink-0">
+<div class="flex items-center gap-4">
+<span class="font-headline text-lg font-bold tracking-tighter text-[#C0C1FF] uppercase hidden">Cognitive Command</span>
+<div class="hidden md:flex gap-6 items-center">
+<a class="font-['Inter'] text-sm font-medium text-[#C0C1FF] border-b-2 border-[#5B5FFF] px-2 py-4 h-14 flex items-center" href="#">Dashboard</a>
+<a class="font-['Inter'] text-sm font-medium text-[#908FA1] hover:bg-[#35343a] rounded-lg transition-colors px-2 py-2" href="#">Agents</a>
+<a class="font-['Inter'] text-sm font-medium text-[#908FA1] hover:bg-[#35343a] rounded-lg transition-colors px-2 py-2" href="#">Assets</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-primary-container text-on-primary-container font-label text-xs font-medium px-4 py-2 rounded-lg hover:bg-inverse-primary transition-colors duration-200">
+                Deploy Agent
+            </button>
+<div class="flex items-center gap-2 text-[#908FA1]">
+<button class="p-2 hover:bg-[#35343a] rounded-full transition-colors"><span class="material-symbols-outlined text-lg">notifications_paused</span></button>
+<button class="p-2 hover:bg-[#35343a] rounded-full transition-colors"><span class="material-symbols-outlined text-lg">extension</span></button>
+<button class="p-2 hover:bg-[#35343a] rounded-full transition-colors"><span class="material-symbols-outlined text-lg">account_circle</span></button>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNavBar -->
+<nav class="bg-[#131318] dark:bg-[#131318] h-full w-64 flex-shrink-0 flex flex-col py-6 px-4 gap-2 border-r-0 shadow-[24px_0_48px_rgba(0,0,0,0.4)] z-40 hidden md:flex">
+<div class="mb-8 px-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="abstract dark 3d render of artificial intelligence neural network core with subtle glowing blue nodes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3sl2kwRFCUiJpVWluQlMqueGBuzH3p47Eqhy7Es2XvXDszjsrFOHy47kxsyyzPXlZ1AMn9LhVVSF6ZRIAszlXRuVdUrS2Wm_W6HvzGeKYwZ6pjdrxEkOWPR9GOatmdxrLx9Q15CF8jlkjr71cBTD5rrGuCVcqPkzqI86YRZnS7Y8-u-L54KiaAVvJR8rBtr1gjkg4nijB3cHeVFcjPEEalhYuUv1oWdnm2WpQQnqbXtp5cwkLVYoC7dGTHrO-K9Ya-l8iA03bv2R2"/>
+</div>
+<div>
+<h2 class="font-headline font-bold text-sm text-[#C0C1FF]">Cognitive Command</h2>
+<p class="font-label text-xs text-outline">AI Lab Alpha v1.0</p>
+</div>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#35343a] text-[#C0C1FF] font-semibold hover:bg-[#35343a]/50 transition-all duration-200 ease-in-out active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">biotech</span>
+<span class="text-sm">Cognitive Lab</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:text-[#C0C1FF] hover:bg-[#35343a]/50 transition-all duration-200 ease-in-out active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">account_tree</span>
+<span class="text-sm">Project Pipeline</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:text-[#C0C1FF] hover:bg-[#35343a]/50 transition-all duration-200 ease-in-out active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">history</span>
+<span class="text-sm">Development History</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:text-[#C0C1FF] hover:bg-[#35343a]/50 transition-all duration-200 ease-in-out active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">folder_open</span>
+<span class="text-sm">Neural Assets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:text-[#C0C1FF] hover:bg-[#35343a]/50 transition-all duration-200 ease-in-out active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="text-sm">System Settings</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col gap-1 pt-4 border-t border-outline-variant/15">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:text-[#C0C1FF] hover:bg-[#35343a]/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]">terminal</span>
+<span class="text-sm">Terminal Output</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:text-[#C0C1FF] hover:bg-[#35343a]/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]">monitor_heart</span>
+<span class="text-sm">System Health</span>
+</a>
+<button class="mt-4 w-full bg-gradient-to-br from-primary-container to-inverse-primary text-on-primary-container font-label text-sm font-medium py-2.5 rounded-lg border-none shadow-[0_4px_14px_0_rgba(91,95,255,0.39)] hover:shadow-[0_6px_20px_rgba(91,95,255,0.23)] hover:-translate-y-0.5 transition-all duration-200">
+                    New Initiative
+                </button>
+</div>
+</nav>
+<!-- Center Main Workspace -->
+<main class="flex-1 bg-surface-container-low flex flex-col overflow-y-auto p-8 gap-8">
+<!-- Header Section -->
+<div class="flex justify-between items-end">
+<div>
+<h1 class="font-headline text-[2.25rem] leading-tight font-bold tracking-[-0.02em] text-on-surface">Genpulse Orchestration</h1>
+<p class="font-body text-sm text-outline mt-1">Monitoring active multi-agent cognitive processes.</p>
+</div>
+<div class="flex gap-2">
+<div class="bg-surface-container-high px-4 py-2 rounded-lg flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+<span class="font-label text-xs tracking-wider text-outline uppercase">Cluster Healthy</span>
+</div>
+</div>
+</div>
+<!-- Agent Status Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Card 1: Orchestrator (Running) -->
+<div class="bg-surface-container-high rounded-xl p-5 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-primary-container/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="bg-surface-container-highest p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">account_tree</span>
+</div>
+<div class="relative flex items-center justify-center">
+<span class="absolute w-4 h-4 bg-primary rounded-full opacity-20 animate-ping"></span>
+<span class="w-2 h-2 bg-primary rounded-full relative z-10"></span>
+</div>
+</div>
+<div>
+<h3 class="font-headline text-lg font-semibold text-on-surface">Orchestrator</h3>
+<p class="font-label text-xs text-outline uppercase tracking-wider mt-1">Status: Delegating</p>
+</div>
+</div>
+<!-- Card 2: Architect (Running) -->
+<div class="bg-surface-container-high rounded-xl p-5 relative overflow-hidden group shadow-[inset_0_1px_0_0_rgba(69,69,85,0.15),inset_1px_0_0_0_rgba(69,69,85,0.15)]">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-surface-container-highest p-2 rounded-lg">
+<span class="material-symbols-outlined text-tertiary">architecture</span>
+</div>
+<div class="relative flex items-center justify-center">
+<span class="absolute w-4 h-4 bg-primary rounded-full opacity-20 animate-ping"></span>
+<span class="w-2 h-2 bg-primary rounded-full relative z-10"></span>
+</div>
+</div>
+<div>
+<h3 class="font-headline text-lg font-semibold text-on-surface">Architect</h3>
+<p class="font-label text-xs text-outline uppercase tracking-wider mt-1">Status: Structuring Data</p>
+</div>
+</div>
+<!-- Card 3: Frontend Dev (Idle/Done) -->
+<div class="bg-surface-container-high rounded-xl p-5 relative overflow-hidden">
+<div class="absolute -bottom-10 -right-10 w-32 h-32 bg-success/5 rounded-full blur-2xl"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="bg-surface-container-highest p-2 rounded-lg">
+<span class="material-symbols-outlined text-outline">code</span>
+</div>
+<div class="w-2 h-2 bg-success rounded-full"></div>
+</div>
+<div>
+<h3 class="font-headline text-lg font-semibold text-on-surface">Frontend Dev</h3>
+<p class="font-label text-xs text-outline uppercase tracking-wider mt-1">Status: Standby</p>
+</div>
+</div>
+<!-- Card 4: QA Specialist (Idle/Done) -->
+<div class="bg-surface-container-high rounded-xl p-5 relative overflow-hidden">
+<div class="absolute -bottom-10 -right-10 w-32 h-32 bg-success/5 rounded-full blur-2xl"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="bg-surface-container-highest p-2 rounded-lg">
+<span class="material-symbols-outlined text-outline">bug_report</span>
+</div>
+<div class="w-2 h-2 bg-success rounded-full"></div>
+</div>
+<div>
+<h3 class="font-headline text-lg font-semibold text-on-surface">QA Specialist</h3>
+<p class="font-label text-xs text-outline uppercase tracking-wider mt-1">Status: Awaiting Build</p>
+</div>
+</div>
+</div>
+<!-- Execution Timeline -->
+<div class="bg-surface-container-highest rounded-xl p-6 flex flex-col gap-4">
+<div class="flex justify-between items-center mb-2">
+<h2 class="font-headline text-lg font-semibold text-on-surface">Execution Timeline</h2>
+<span class="font-label text-xs text-outline uppercase">T+ 04:12</span>
+</div>
+<div class="relative w-full h-[120px] flex flex-col justify-between pt-2">
+<!-- Vertical grid lines -->
+<div class="absolute inset-0 flex justify-between px-10 border-l border-outline-variant/15">
+<div class="h-full border-l border-outline/30 border-dashed"></div>
+<div class="h-full border-l border-outline/30 border-dashed"></div>
+<div class="h-full border-l border-outline/30 border-dashed"></div>
+<div class="h-full border-l border-outline/30 border-dashed"></div>
+</div>
+<!-- Tracks -->
+<div class="relative z-10 w-full h-8 flex items-center pl-4">
+<span class="font-mono text-xs text-outline w-24">Orchestrate</span>
+<div class="h-4 bg-surface-container-low rounded-full flex-1 relative mx-4">
+<div class="absolute left-0 top-0 h-full w-1/4 bg-success/40 rounded-full"></div>
+</div>
+</div>
+<div class="relative z-10 w-full h-8 flex items-center pl-4">
+<span class="font-mono text-xs text-outline w-24">Architect</span>
+<div class="h-4 bg-surface-container-low rounded-full flex-1 relative mx-4">
+<div class="absolute left-1/4 top-0 h-full w-1/3 bg-primary-fixed-dim rounded-full shadow-[0_0_10px_rgba(192,193,255,0.3)]"></div>
+</div>
+</div>
+<div class="relative z-10 w-full h-8 flex items-center pl-4">
+<span class="font-mono text-xs text-outline w-24">Develop</span>
+<div class="h-4 bg-surface-container-low rounded-full flex-1 relative mx-4">
+<!-- empty track -->
+</div>
+</div>
+</div>
+</div>
+<!-- Logs / Terminal Interface -->
+<div class="bg-surface rounded-xl flex-1 flex flex-col overflow-hidden shadow-[inset_0_1px_0_0_rgba(69,69,85,0.15),inset_1px_0_0_0_rgba(69,69,85,0.15)]">
+<!-- Tabs -->
+<div class="flex border-b border-surface-container-low bg-surface-container-lowest">
+<button class="px-6 py-3 font-label text-xs uppercase tracking-wider text-primary border-b-2 border-primary bg-surface-container-low">Raw Logs</button>
+<button class="px-6 py-3 font-label text-xs uppercase tracking-wider text-outline hover:text-on-surface hover:bg-surface-container transition-colors">Terminal Output</button>
+<button class="px-6 py-3 font-label text-xs uppercase tracking-wider text-outline hover:text-on-surface hover:bg-surface-container transition-colors">Network</button>
+</div>
+<!-- Log Content -->
+<div class="p-4 font-mono text-[0.75rem] leading-relaxed text-on-surface-variant overflow-y-auto flex-1 bg-surface-container-lowest">
+<div class="flex gap-4 mb-2"><span class="text-outline">14:02:11</span><span class="text-tertiary">[Orchestrator]</span><span>Initialized project scope analysis.</span></div>
+<div class="flex gap-4 mb-2"><span class="text-outline">14:02:15</span><span class="text-tertiary">[Orchestrator]</span><span>Identified 3 required agents: Architect, Frontend, QA.</span></div>
+<div class="flex gap-4 mb-2"><span class="text-outline">14:02:18</span><span class="text-tertiary">[Orchestrator]</span><span>Delegating task "System Design" to Architect.</span></div>
+<div class="flex gap-4 mb-2"><span class="text-outline">14:02:20</span><span class="text-primary">[Architect]</span><span>Received task. Loading context embeddings...</span></div>
+<div class="flex gap-4 mb-2"><span class="text-outline">14:02:25</span><span class="text-primary">[Architect]</span><span>Analyzing data models for user authentication flow.</span></div>
+<div class="flex gap-4 mb-2 bg-primary-container/10 p-1 -mx-1"><span class="text-outline">14:02:30</span><span class="text-primary">[Architect]</span><span class="text-primary-fixed">Generating schema definitions... [Processing]</span></div>
+</div>
+</div>
+</main>
+<!-- Right Panel: Thought Bubble Stream -->
+<aside class="w-96 flex-shrink-0 liquid-glass border-l border-outline-variant/10 shadow-[-24px_0_48px_rgba(0,0,0,0.3)] flex flex-col z-30">
+<div class="p-6 border-b border-outline-variant/10">
+<h2 class="font-headline text-lg font-semibold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">psychology</span>
+                    Architect Cognition
+                </h2>
+<p class="font-body text-xs text-outline mt-1">Live reasoning stream</p>
+</div>
+<div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+<!-- Thought Bubble 1 -->
+<div class="bg-surface-container-high rounded-[0.375rem] rounded-tl-none p-4 shadow-[inset_0_1px_0_0_rgba(69,69,85,0.15),inset_1px_0_0_0_rgba(69,69,85,0.15)] relative">
+<div class="absolute -left-2 top-0 w-2 h-2 bg-surface-container-high clip-triangle"></div>
+<p class="font-body text-sm text-on-surface-variant mb-2">
+                        Reviewing the requirements for the authentication flow. We need to support standard JWT and OAuth2 providers.
+                    </p>
+<div class="font-mono text-[0.75rem] text-outline bg-surface-container-lowest p-2 rounded mt-2">
+                        Intent: Evaluate security protocols.
+                    </div>
+</div>
+<!-- Thought Bubble 2 (Diff/Action) -->
+<div class="bg-surface-container-high rounded-[0.375rem] rounded-tr-none p-4 shadow-[inset_0_1px_0_0_rgba(69,69,85,0.15),inset_1px_0_0_0_rgba(69,69,85,0.15)] ml-4 self-end w-[90%]">
+<p class="font-body text-sm text-on-surface-variant mb-2">
+                        I'll structured the user schema to accommodate flexible provider IDs. Modifying base entity.
+                    </p>
+<div class="bg-surface-container-lowest p-2 rounded font-mono text-[0.75rem] mt-2 border-l-2 border-primary">
+<div class="text-error-container opacity-80">- string passwordHash;</div>
+<div class="text-primary-container opacity-80">+ string providerId;</div>
+<div class="text-primary-container opacity-80">+ string authType;</div>
+</div>
+</div>
+<!-- Thought Bubble 3 (Active) -->
+<div class="bg-surface-container-high rounded-[0.375rem] rounded-tl-none p-4 shadow-[inset_0_1px_0_0_rgba(69,69,85,0.15),inset_1px_0_0_0_rgba(69,69,85,0.15)] relative ring-1 ring-primary/30">
+<div class="absolute -left-2 top-0 w-2 h-2 bg-surface-container-high clip-triangle"></div>
+<div class="flex items-center gap-2 mb-2">
+<span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
+<span class="font-label text-[0.65rem] uppercase tracking-wider text-primary">Synthesizing</span>
+</div>
+<p class="font-body text-sm text-on-surface-variant">
+                        Drafting the API endpoint specifications for the auth service...
+                    </p>
+</div>
+</div>
+<div class="p-4 border-t border-outline-variant/10 bg-surface-container-low/50">
+<div class="bg-surface-container-lowest rounded-lg p-3 flex items-center border-b-2 border-transparent focus-within:border-primary transition-colors">
+<input class="bg-transparent border-none text-sm text-on-surface w-full focus:ring-0 placeholder:text-outline font-body" placeholder="Inject parameter or interrupt..." type="text"/>
+<button class="text-primary hover:text-inverse-primary transition-colors">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</aside>
+</div>
+</body></html>

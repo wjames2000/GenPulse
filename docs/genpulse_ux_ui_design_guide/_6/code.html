@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Genpulse AI - 技能库</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for editor */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #35343a;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #454555;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface": "#e4e1e9",
+                        "on-secondary-fixed": "#0e0f58",
+                        "background": "#131318",
+                        "surface-variant": "#35343a",
+                        "outline": "#908fa1",
+                        "surface-container": "#1f1f25",
+                        "on-secondary": "#26286c",
+                        "surface-container-high": "#2a292f",
+                        "inverse-primary": "#4345e8",
+                        "tertiary-fixed-dim": "#ffb68f",
+                        "on-primary": "#0d00aa",
+                        "error": "#ffb4ab",
+                        "tertiary": "#ffb68f",
+                        "on-tertiary": "#542100",
+                        "secondary": "#c0c1ff",
+                        "on-primary-fixed-variant": "#2623d1",
+                        "on-tertiary-container": "#fffcff",
+                        "on-secondary-container": "#afb2ff",
+                        "surface-tint": "#c0c1ff",
+                        "primary-container": "#5b5fff",
+                        "outline-variant": "#454555",
+                        "on-primary-fixed": "#05006c",
+                        "secondary-fixed-dim": "#c0c1ff",
+                        "secondary-container": "#3f4287",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "primary-fixed": "#e1e0ff",
+                        "on-tertiary-fixed-variant": "#773200",
+                        "on-primary-container": "#fffcff",
+                        "surface-container-low": "#1b1b20",
+                        "inverse-on-surface": "#303036",
+                        "on-error": "#690005",
+                        "surface-dim": "#131318",
+                        "surface-bright": "#39383e",
+                        "secondary-fixed": "#e1e0ff",
+                        "on-background": "#e4e1e9",
+                        "tertiary-fixed": "#ffdbca",
+                        "surface-container-lowest": "#0e0e13",
+                        "tertiary-container": "#c05500",
+                        "on-tertiary-fixed": "#331100",
+                        "surface": "#131318",
+                        "primary": "#c0c1ff",
+                        "on-surface-variant": "#c6c4d8",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-highest": "#35343a",
+                        "error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#3d3f84",
+                        "inverse-surface": "#e4e1e9"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body antialiased flex h-screen overflow-hidden">
+<!-- SideNavBar (Generated from JSON) -->
+<nav class="bg-[#0E0E13] text-[#5B5FFF] font-['Inter'] text-sm tracking-wide h-screen w-64 border-r border-[#454555]/15 flex flex-col fixed left-0 top-0 py-6 z-40 transition-colors">
+<!-- Header -->
+<div class="px-6 mb-8 flex flex-col gap-1">
+<h1 class="text-on-surface font-bold text-lg tracking-tight">Project Alpha</h1>
+<span class="text-outline text-xs">v2.4.0-stable</span>
+</div>
+<!-- CTA -->
+<div class="px-6 mb-6">
+<button class="w-full bg-primary-container text-on-primary-container rounded-lg py-2.5 px-4 font-medium flex items-center justify-center gap-2 transition-colors hover:bg-inverse-primary">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                New Agent
+            </button>
+</div>
+<!-- Main Navigation -->
+<div class="flex-1 flex flex-col gap-1 px-3">
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all duration-200" href="#" style="transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);">
+<span class="material-symbols-outlined">science</span>
+                Cognitive Lab
+            </a>
+<!-- Active -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#1B1B20] text-[#C0C1FF] border-r-2 border-[#5B5FFF] transition-all duration-200" href="#" style="transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);">
+<span class="material-symbols-outlined filled text-primary-container">extension</span>
+                Skills Library
+            </a>
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all duration-200" href="#" style="transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);">
+<span class="material-symbols-outlined">difference</span>
+                Diff Engine
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all duration-200" href="#" style="transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);">
+<span class="material-symbols-outlined">terminal</span>
+                Terminal
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all duration-200" href="#" style="transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);">
+<span class="material-symbols-outlined">pulse_alert</span>
+                System Health
+            </a>
+</div>
+<!-- Footer Navigation -->
+<div class="flex flex-col gap-1 px-3 mt-auto pt-4 border-t border-outline-variant/15">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all duration-200 text-xs" href="#">
+<span class="material-symbols-outlined text-[18px]">menu_book</span>
+                Documentation
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all duration-200 text-xs" href="#">
+<span class="material-symbols-outlined text-[18px]">contact_support</span>
+                Support
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="ml-64 flex-1 flex flex-col min-w-0 bg-background relative">
+<!-- TopNavBar (Generated from JSON) -->
+<header class="bg-[#131318]/80 backdrop-blur-xl border-b border-[#454555]/15 flex justify-between items-center w-full px-6 h-16 sticky top-0 z-30 font-['Inter'] antialiased">
+<!-- Left: Brand / Search -->
+<div class="flex items-center gap-8">
+<div class="text-xl font-bold tracking-tight text-[#5B5FFF]">
+                    Genpulse AI
+                </div>
+<!-- Search Component -->
+<div class="relative w-64 group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors text-[20px]">search</span>
+<input class="w-full bg-surface-container-low text-on-surface text-sm rounded-lg pl-10 pr-4 py-1.5 border-b-2 border-transparent focus:border-primary focus:bg-surface-container-highest outline-none transition-all placeholder:text-outline/70" placeholder="搜索技能..." type="text"/>
+</div>
+</div>
+<!-- Right: Actions -->
+<div class="flex items-center gap-4">
+<button class="text-[#908FA1] hover:text-white hover:bg-[#1B1B20] transition-colors p-2 rounded-full flex items-center justify-center scale-95 duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-[#908FA1] hover:text-white hover:bg-[#1B1B20] transition-colors p-2 rounded-full flex items-center justify-center scale-95 duration-200">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-px h-6 bg-outline-variant/30 mx-2"></div>
+<button class="bg-primary-container text-on-primary-container px-5 py-1.5 rounded-lg text-sm font-medium hover:bg-inverse-primary transition-colors scale-95 duration-200">
+                    Deploy
+                </button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant/30 overflow-hidden ml-2 cursor-pointer relative" title="User profile">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUpVVpv8Q0GAEFLlUs4l_SBsXxuSxCNsEtIGkg3roc84wFZCpkIIqplBlCxhtGj51lvcfq98eTKgFKX24_4fZX8t2-zTwhDkaRO8UEws8OFfHNvNha6GiSLP__USUWjrMUwhsBKZhmZVRT_KnFKLIMjOuO0KOPCQibehJq-5DEIFtXzsPeFVAaR3WDvpBjsveJtrw3OlDQdiyDkaJ8slzsIPD6gIpEVR_8hCCZ96ezHKLm5CT7P48RrBUqfa2-5pJoW_YDu_wgGy5y"/>
+</div>
+</div>
+</header>
+<!-- Cognitive Workspace Content -->
+<main class="flex-1 overflow-hidden flex flex-col p-6 gap-6">
+<!-- Workspace Header -->
+<div class="flex items-end justify-between shrink-0">
+<div>
+<h2 class="text-[2.25rem] font-bold text-on-surface tracking-[-0.02em] leading-tight">技能库</h2>
+<p class="text-outline mt-1 text-sm">管理和配置代理的认知能力模块。</p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded bg-surface-container-low text-on-surface-variant text-xs font-medium border-t border-l border-outline-variant/15 hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+                        过滤
+                    </button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded bg-surface-container-low text-on-surface-variant text-xs font-medium border-t border-l border-outline-variant/15 hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-[16px]">sort</span>
+                        排序
+                    </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="flex-1 flex gap-6 overflow-hidden min-h-0">
+<!-- Left Pane: Skill List -->
+<div class="w-[380px] shrink-0 flex flex-col gap-4 overflow-y-auto pr-2 pb-4">
+<!-- Active Skill Card (React 专家) -->
+<div class="bg-surface-container-highest rounded-xl p-5 flex flex-col gap-4 relative cursor-pointer border-t border-l border-outline-variant/20 shadow-[0_24px_48px_rgba(0,0,0,0.4)] group">
+<!-- Selection Indicator -->
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[24px]">code_blocks</span>
+</div>
+<div>
+<h3 class="text-base font-semibold text-on-surface flex items-center gap-2">
+                                        React 专家
+                                        <span class="flex items-center justify-center w-2 h-2 rounded-full bg-secondary relative">
+<span class="absolute inset-0 rounded-full bg-secondary animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite] opacity-40"></span>
+</span>
+</h3>
+<span class="text-xs text-outline font-mono">v1.4.2 • 认知模块</span>
+</div>
+</div>
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-2 leading-relaxed">
+                            精通现代 React 架构，能够生成高性能组件、处理复杂状态管理并优化渲染流水线。
+                        </p>
+<div class="flex items-center gap-4 pt-2 border-t border-outline-variant/10">
+<div class="flex flex-col gap-0.5">
+<span class="text-[0.65rem] uppercase tracking-wider text-outline font-medium">成功率</span>
+<span class="text-sm font-mono text-secondary">98.4%</span>
+</div>
+<div class="w-px h-6 bg-outline-variant/20"></div>
+<div class="flex flex-col gap-0.5">
+<span class="text-[0.65rem] uppercase tracking-wider text-outline font-medium">调用次数</span>
+<span class="text-sm font-mono text-on-surface">12,450</span>
+</div>
+<div class="w-px h-6 bg-outline-variant/20"></div>
+<div class="flex flex-col gap-0.5">
+<span class="text-[0.65rem] uppercase tracking-wider text-outline font-medium">延迟</span>
+<span class="text-sm font-mono text-on-surface">240ms</span>
+</div>
+</div>
+</div>
+<!-- Inactive Skill Card (Go 后端) -->
+<div class="bg-surface-container-low rounded-xl p-5 flex flex-col gap-4 relative cursor-pointer border-t border-l border-outline-variant/10 hover:bg-surface-container-high transition-colors group">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center text-outline group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">api</span>
+</div>
+<div>
+<h3 class="text-base font-medium text-on-surface-variant group-hover:text-on-surface transition-colors">Go 后端</h3>
+<span class="text-xs text-outline font-mono">v2.1.0 • 逻辑处理</span>
+</div>
+</div>
+</div>
+<p class="text-sm text-outline line-clamp-2 leading-relaxed">
+                            专注于高并发微服务架构，提供稳健的 API 设计、数据库分片策略与协程管理方案。
+                        </p>
+<div class="flex items-center gap-4 pt-2 border-t border-outline-variant/10">
+<div class="flex flex-col gap-0.5">
+<span class="text-xs font-mono text-secondary">95.2%</span>
+</div>
+<div class="w-px h-4 bg-outline-variant/20"></div>
+<div class="flex flex-col gap-0.5">
+<span class="text-xs font-mono text-outline">8,204</span>
+</div>
+</div>
+</div>
+<!-- Inactive Skill Card (Git 流水线) -->
+<div class="bg-surface-container-low rounded-xl p-5 flex flex-col gap-4 relative cursor-pointer border-t border-l border-outline-variant/10 hover:bg-surface-container-high transition-colors group">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center text-outline group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">account_tree</span>
+</div>
+<div>
+<h3 class="text-base font-medium text-on-surface-variant group-hover:text-on-surface transition-colors">Git 流水线</h3>
+<span class="text-xs text-outline font-mono">v1.0.8 • 运维自动化</span>
+</div>
+</div>
+</div>
+<p class="text-sm text-outline line-clamp-2 leading-relaxed">
+                            自动化 CI/CD 流程构建，代码合并冲突智能解决，部署策略优化。
+                        </p>
+<div class="flex items-center gap-4 pt-2 border-t border-outline-variant/10">
+<div class="flex flex-col gap-0.5">
+<span class="text-xs font-mono text-secondary">99.1%</span>
+</div>
+<div class="w-px h-4 bg-outline-variant/20"></div>
+<div class="flex flex-col gap-0.5">
+<span class="text-xs font-mono text-outline">45,112</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Pane: Preview Editor -->
+<div class="flex-1 flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant/15 overflow-hidden shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
+<!-- Editor Header / Tabs -->
+<div class="bg-[#1B1B20] border-b border-[#35343a] flex items-center px-2 py-1.5 gap-1 shrink-0">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-[#2a292f] rounded text-primary text-xs font-medium border-t border-outline-variant/20 cursor-pointer">
+<span class="material-symbols-outlined text-[14px]">description</span>
+                            definition.yaml
+                        </div>
+<div class="flex items-center gap-2 px-3 py-1.5 text-outline hover:bg-[#2a292f] hover:text-on-surface rounded text-xs font-medium cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-[14px]">markdown</span>
+                            README.md
+                        </div>
+<div class="flex-1"></div>
+<div class="flex items-center gap-2 px-2">
+<button class="text-outline hover:text-primary transition-colors p-1" title="Copy to clipboard">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+</button>
+<button class="text-outline hover:text-primary transition-colors p-1" title="Edit definition">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+</div>
+</div>
+<!-- Editor Body (Code View) -->
+<div class="flex-1 p-6 overflow-y-auto bg-[#0E0E13] font-mono text-[13px] leading-relaxed select-text">
+<pre class="m-0"><code class="text-on-surface-variant">
+<span class="text-primary">name:</span> <span class="text-tertiary">react-expert</span>
+<span class="text-primary">type:</span> <span class="text-tertiary">cognitive-skill</span>
+<span class="text-primary">version:</span> <span class="text-tertiary">"1.4.2"</span>
+<span class="text-primary">description:</span> <span class="text-tertiary">"高级 React 组件生成与优化专家"</span>
+
+<span class="text-primary">parameters:</span>
+  <span class="text-secondary">framework_version:</span> <span class="text-tertiary">"&gt;=18.0.0"</span>
+  <span class="text-secondary">strict_mode:</span> <span class="text-inverse-primary">true</span>
+  <span class="text-secondary">styling_preference:</span>
+    <span class="text-outline">-</span> <span class="text-tertiary">"tailwind"</span>
+    <span class="text-outline">-</span> <span class="text-tertiary">"css-modules"</span>
+
+<span class="text-primary">capabilities:</span>
+  <span class="text-outline">-</span> <span class="text-primary-container">id:</span> <span class="text-tertiary">ui-generation</span>
+    <span class="text-primary-container">confidence_score:</span> <span class="text-secondary">0.98</span>
+    <span class="text-primary-container">dependencies:</span> <span class="text-outline">[]</span>
+  
+  <span class="text-outline">-</span> <span class="text-primary-container">id:</span> <span class="text-tertiary">state-management</span>
+    <span class="text-primary-container">supported_libs:</span> 
+      <span class="text-outline">-</span> <span class="text-tertiary">"zustand"</span>
+      <span class="text-outline">-</span> <span class="text-tertiary">"redux-toolkit"</span>
+
+<span class="text-primary">execution_context:</span>
+  <span class="text-secondary">max_tokens:</span> <span class="text-secondary">4096</span>
+  <span class="text-secondary">temperature:</span> <span class="text-secondary">0.2</span>
+  <span class="text-secondary">system_prompt:</span> <span class="text-tertiary">|
+    You are an elite React engineer. Focus on performance, 
+    accessibility, and modern hooks patterns. Do not use 
+    class components unless explicitly requested.</span>
+
+<span class="text-primary">metrics_target:</span>
+  <span class="text-secondary">min_success_rate:</span> <span class="text-secondary">0.95</span>
+  <span class="text-secondary">max_latency_ms:</span> <span class="text-secondary">500</span>
+</code></pre>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

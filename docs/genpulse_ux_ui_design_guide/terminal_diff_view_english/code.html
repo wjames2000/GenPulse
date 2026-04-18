@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Genpulse AI - Cognitive Lab</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface": "#e4e1e9",
+                        "on-secondary-fixed": "#0e0f58",
+                        "background": "#131318",
+                        "surface-variant": "#35343a",
+                        "outline": "#908fa1",
+                        "surface-container": "#1f1f25",
+                        "on-secondary": "#26286c",
+                        "surface-container-high": "#2a292f",
+                        "inverse-primary": "#4345e8",
+                        "tertiary-fixed-dim": "#ffb68f",
+                        "on-primary": "#0d00aa",
+                        "error": "#ffb4ab",
+                        "tertiary": "#ffb68f",
+                        "on-tertiary": "#542100",
+                        "secondary": "#c0c1ff",
+                        "on-primary-fixed-variant": "#2623d1",
+                        "on-tertiary-container": "#fffcff",
+                        "on-secondary-container": "#afb2ff",
+                        "surface-tint": "#c0c1ff",
+                        "primary-container": "#5b5fff",
+                        "outline-variant": "#454555",
+                        "on-primary-fixed": "#05006c",
+                        "secondary-fixed-dim": "#c0c1ff",
+                        "secondary-container": "#3f4287",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "primary-fixed": "#e1e0ff",
+                        "on-tertiary-fixed-variant": "#773200",
+                        "on-primary-container": "#fffcff",
+                        "surface-container-low": "#1b1b20",
+                        "inverse-on-surface": "#303036",
+                        "on-error": "#690005",
+                        "surface-dim": "#131318",
+                        "surface-bright": "#39383e",
+                        "secondary-fixed": "#e1e0ff",
+                        "on-background": "#e4e1e9",
+                        "tertiary-fixed": "#ffdbca",
+                        "surface-container-lowest": "#0e0e13",
+                        "tertiary-container": "#c05500",
+                        "on-tertiary-fixed": "#331100",
+                        "surface": "#131318",
+                        "primary": "#c0c1ff",
+                        "on-surface-variant": "#c6c4d8",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-highest": "#35343a",
+                        "error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#3d3f84",
+                        "inverse-surface": "#e4e1e9"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "code": ["JetBrains Mono", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for subtle appearance */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #35343a; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #454555; 
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body h-screen w-full flex overflow-hidden selection:bg-primary-container/30">
+<!-- SideNavBar (Shared Component) -->
+<nav class="bg-[#0E0E13] font-['Inter'] text-sm tracking-wide h-screen w-64 border-r border-[#454555]/15 shadow-[24px_0_48px_rgba(0,0,0,0.4)] flex flex-col fixed left-0 top-0 py-6 z-40 transition-all">
+<!-- Header -->
+<div class="px-6 mb-8 flex flex-col gap-1">
+<h2 class="text-on-surface font-semibold text-lg tracking-tight">Project Alpha</h2>
+<span class="text-outline text-xs">v2.4.0-stable</span>
+</div>
+<!-- Main Nav Tabs -->
+<div class="flex-1 px-4 space-y-1 flex flex-col">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="science">science</span>
+<span>Cognitive Lab</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="extension">extension</span>
+<span>Skills Library</span>
+</a>
+<!-- ACTIVE TAB -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-l bg-[#1B1B20] text-[#C0C1FF] border-r-2 border-[#5B5FFF] cubic-bezier(0.4, 0, 0.2, 1) duration-200" href="#">
+<span class="material-symbols-outlined text-[20px] text-[#5B5FFF]" data-icon="difference" data-weight="fill">difference</span>
+<span class="font-medium">Diff Engine</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="terminal">terminal</span>
+<span>Terminal</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200 group" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-[20px]" data-icon="pulse">pulse_alert</span>
+<span class="absolute top-0 right-0 w-1.5 h-1.5 bg-[#4ADE80] rounded-full opacity-80 shadow-[0_0_8px_#4ADE80]"></span>
+</div>
+<span>System Health</span>
+</a>
+</div>
+<!-- CTA & Footer Tabs -->
+<div class="px-4 mt-auto flex flex-col gap-4">
+<button class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-br from-primary-container to-inverse-primary text-on-primary-container font-medium hover:brightness-110 transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200 scale-95 hover:scale-100 origin-center">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                New Agent
+            </button>
+<div class="flex flex-col gap-1 border-t border-outline-variant/15 pt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="menu_book">menu_book</span>
+<span class="text-xs">Documentation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="contact_support">contact_support</span>
+<span class="text-xs">Support</span>
+</a>
+</div>
+</div>
+</nav>
+<!-- Main Workspace Area -->
+<main class="ml-64 flex-1 flex flex-col h-screen relative bg-surface-container-low">
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-[#131318]/80 backdrop-blur-xl font-['Inter'] antialiased docked full-width top-0 sticky z-50 border-b border-[#454555]/15 flex justify-between items-center w-full px-6 h-16">
+<div class="flex items-center gap-8">
+<!-- Brand Logo -->
+<div class="text-xl font-bold tracking-tight text-[#5B5FFF] flex items-center gap-2">
+<span class="material-symbols-outlined" data-weight="fill">hub</span>
+                    Genpulse AI
+                </div>
+<!-- Search Bar -->
+<div class="relative hidden md:flex items-center group">
+<span class="material-symbols-outlined absolute left-3 text-outline group-focus-within:text-primary transition-colors text-[18px]">search</span>
+<input class="bg-surface-container-lowest border-none rounded text-sm text-on-surface pl-10 pr-4 py-1.5 w-64 focus:ring-0 focus:outline-none focus:border-b-2 focus:border-primary transition-all shadow-inner placeholder:text-outline-variant" placeholder="Search cognitive logs, files..." type="text"/>
+</div>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-4">
+<button class="text-[#908FA1] hover:text-white hover:bg-[#1B1B20] transition-colors p-2 rounded-full scale-95 duration-200 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border border-surface"></span>
+</button>
+<button class="text-[#908FA1] hover:text-white hover:bg-[#1B1B20] transition-colors p-2 rounded-full scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-px h-6 bg-outline-variant/30 mx-2"></div>
+<button class="flex items-center gap-2 bg-primary-container/10 text-primary-fixed border border-primary-container/30 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-primary-container/20 transition-all scale-95 duration-200">
+<span class="material-symbols-outlined text-[16px]">cloud_upload</span>
+                    Deploy
+                </button>
+<div class="h-8 w-8 rounded-full bg-surface-variant overflow-hidden border border-outline-variant/30 ml-2">
+<!-- Placeholder for profile image -->
+<div class="w-full h-full bg-gradient-to-tr from-secondary-container to-surface-tint flex items-center justify-center text-xs font-bold text-on-primary-container">
+                        U
+                    </div>
+</div>
+</div>
+</header>
+<!-- Cognitive Workspace Canvas -->
+<div class="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
+<!-- Context Header & Actions -->
+<div class="flex items-end justify-between shrink-0">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 text-xs font-medium text-outline uppercase tracking-wider font-label">
+<span class="material-symbols-outlined text-[16px]">folder_open</span>
+<span>src / core / agents /</span>
+<span class="text-on-surface">reasoning_engine.ts</span>
+</div>
+<h1 class="text-[2.25rem] font-bold leading-none tracking-[-0.02em] font-headline text-on-surface flex items-center gap-4">
+                        Diff Resolution
+                        <span class="px-2 py-1 rounded bg-surface-container-high border border-outline-variant/15 text-[0.6875rem] font-medium tracking-widest text-primary align-middle">PENDING REVIEW</span>
+</h1>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-5 py-2 rounded-lg bg-surface-container-high text-on-surface text-sm font-medium hover:bg-surface-bright transition-all flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
+<span class="material-symbols-outlined text-[18px] text-error">close</span>
+                        Reject Change
+                    </button>
+<button class="px-5 py-2 rounded-lg bg-primary-container text-on-primary-container text-sm font-medium hover:brightness-110 transition-all flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
+<span class="material-symbols-outlined text-[18px]">check</span>
+                        Accept &amp; Apply
+                    </button>
+</div>
+</div>
+<!-- Side-by-Side Diff Container -->
+<!-- The Layering Principle: nesting container-highest on container-low -->
+<div class="flex-1 flex gap-4 overflow-hidden rounded-xl border border-outline-variant/15 p-1 bg-surface-container-highest shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+<!-- Left Pane: Original -->
+<div class="flex-1 flex flex-col bg-surface overflow-hidden rounded-lg">
+<div class="px-4 py-2 bg-surface-container border-b border-outline-variant/15 flex justify-between items-center text-xs text-outline font-medium">
+<span>Original: HEAD</span>
+<span class="font-code opacity-50">v1.2.8</span>
+</div>
+<div class="flex-1 overflow-auto font-code text-[0.875rem] leading-relaxed select-text pb-4">
+<!-- Code Lines -->
+<div class="flex hover:bg-surface-container-low/50 transition-colors">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-outline-variant select-none border-r border-outline-variant/15">42</div>
+<div class="pl-4 py-0.5 text-on-surface-variant whitespace-pre">  async function analyzeContext(data: any) {</div>
+</div>
+<div class="flex hover:bg-surface-container-low/50 transition-colors">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-outline-variant select-none border-r border-outline-variant/15">43</div>
+<div class="pl-4 py-0.5 text-on-surface-variant whitespace-pre">    const prompt = buildPrompt(data);</div>
+</div>
+<!-- Deletion Block -->
+<div class="flex bg-error-container/20 border-l-2 border-error">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-error/70 select-none border-r border-error/20">44</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">    const response = await llm.generate(prompt);</div>
+</div>
+<div class="flex bg-error-container/20 border-l-2 border-error">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-error/70 select-none border-r border-error/20">45</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">    return parseResult(response);</div>
+</div>
+<div class="flex hover:bg-surface-container-low/50 transition-colors">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-outline-variant select-none border-r border-outline-variant/15">46</div>
+<div class="pl-4 py-0.5 text-on-surface-variant whitespace-pre">  }</div>
+</div>
+</div>
+</div>
+<!-- Right Pane: Modified -->
+<div class="flex-1 flex flex-col bg-surface overflow-hidden rounded-lg">
+<div class="px-4 py-2 bg-surface-container border-b border-outline-variant/15 flex justify-between items-center text-xs text-primary font-medium">
+<span class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+                            Agent Modified
+                        </span>
+<span class="font-code opacity-50">Local Edit</span>
+</div>
+<div class="flex-1 overflow-auto font-code text-[0.875rem] leading-relaxed select-text pb-4">
+<div class="flex hover:bg-surface-container-low/50 transition-colors">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-outline-variant select-none border-r border-outline-variant/15">42</div>
+<div class="pl-4 py-0.5 text-on-surface-variant whitespace-pre">  async function analyzeContext(data: any) {</div>
+</div>
+<div class="flex hover:bg-surface-container-low/50 transition-colors">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-outline-variant select-none border-r border-outline-variant/15">43</div>
+<div class="pl-4 py-0.5 text-on-surface-variant whitespace-pre">    const prompt = buildPrompt(data);</div>
+</div>
+<!-- Addition Block -->
+<div class="flex bg-primary-container/15 border-l-2 border-primary">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-primary/70 select-none border-r border-primary/20">44</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">    const contextOpts = { temperature: 0.2, top_p: 0.9 };</div>
+</div>
+<div class="flex bg-primary-container/15 border-l-2 border-primary">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-primary/70 select-none border-r border-primary/20">45</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">    try {</div>
+</div>
+<div class="flex bg-primary-container/15 border-l-2 border-primary">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-primary/70 select-none border-r border-primary/20">46</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">      const response = await llm.generate(prompt, contextOpts);</div>
+</div>
+<div class="flex bg-primary-container/15 border-l-2 border-primary">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-primary/70 select-none border-r border-primary/20">47</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">      return validateAndParse(response);</div>
+</div>
+<div class="flex bg-primary-container/15 border-l-2 border-primary">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-primary/70 select-none border-r border-primary/20">48</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">    } catch (e) {</div>
+</div>
+<div class="flex bg-primary-container/15 border-l-2 border-primary">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-primary/70 select-none border-r border-primary/20">49</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">      logger.error('Generation failed', e);</div>
+</div>
+<div class="flex bg-primary-container/15 border-l-2 border-primary">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-primary/70 select-none border-r border-primary/20">50</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">      throw new CriticalAgentFault();</div>
+</div>
+<div class="flex bg-primary-container/15 border-l-2 border-primary">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-primary/70 select-none border-r border-primary/20">51</div>
+<div class="pl-4 py-0.5 text-on-surface whitespace-pre">    }</div>
+</div>
+<div class="flex hover:bg-surface-container-low/50 transition-colors">
+<div class="w-12 shrink-0 text-right pr-4 py-0.5 text-outline-variant select-none border-r border-outline-variant/15">52</div>
+<div class="pl-4 py-0.5 text-on-surface-variant whitespace-pre">  }</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Terminal Panel -->
+<div class="h-64 shrink-0 bg-surface-container-lowest border-t border-outline-variant/20 flex flex-col font-code relative z-10 shadow-[0_-8px_24px_rgba(0,0,0,0.3)]">
+<!-- Terminal Header -->
+<div class="flex items-center justify-between px-4 py-2 bg-[#0a0a0d] border-b border-outline-variant/10">
+<div class="flex items-center gap-4">
+<div class="flex gap-1.5">
+<div class="w-2.5 h-2.5 rounded-full bg-surface-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-variant"></div>
+</div>
+<span class="text-[0.6875rem] text-outline tracking-wider uppercase font-body font-medium">Terminal Process : bash</span>
+</div>
+<div class="flex gap-2">
+<button class="text-outline hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">clear_all</span></button>
+<button class="text-outline hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">expand_less</span></button>
+</div>
+</div>
+<!-- Terminal Output -->
+<div class="flex-1 overflow-auto p-4 text-[0.8125rem] text-on-surface-variant leading-relaxed">
+<div class="mb-1"><span class="text-[#4ADE80]">genpulse@system</span>:<span class="text-primary">~/project-alpha</span>$ npm run build</div>
+<div class="text-outline mb-4">&gt; alpha-core@2.4.0 build<br/>&gt; tsc &amp;&amp; vite build</div>
+<div class="mb-1 text-primary-fixed-dim">[*] Initializing Agent Reasoner...</div>
+<div class="mb-1 text-outline">[-] Parsing AST for target files...</div>
+<div class="mb-1 text-outline">[-] Generating proposed modifications via <span class="text-secondary">GPT-4-Turbo</span>...</div>
+<div class="mb-3 text-[#4ADE80]">[+] Diff generated successfully for reasoning_engine.ts</div>
+<div class="mb-1"><span class="text-[#4ADE80]">genpulse@system</span>:<span class="text-primary">~/project-alpha</span>$ git status</div>
+<div class="text-outline">On branch feature/agent-reasoning-update<br/>Changes not staged for commit:<br/>  (use "git add &lt;file&gt;..." to update what will be committed)<br/>  (use "git restore &lt;file&gt;..." to discard changes in working directory)</div>
+<div class="text-error-container pl-4 mb-3">modified:   src/core/agents/reasoning_engine.ts</div>
+<div class="flex items-center">
+<span class="text-[#4ADE80]">genpulse@system</span>:<span class="text-primary">~/project-alpha</span>$ <span class="w-2 h-4 bg-primary ml-1 animate-[pulse_1s_step-end_infinite]"></span>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Genpulse AI - Terminal &amp; Diff</title>
+<!-- Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface": "#e4e1e9",
+                    "on-secondary-fixed": "#0e0f58",
+                    "background": "#131318",
+                    "surface-variant": "#35343a",
+                    "outline": "#908fa1",
+                    "surface-container": "#1f1f25",
+                    "on-secondary": "#26286c",
+                    "surface-container-high": "#2a292f",
+                    "inverse-primary": "#4345e8",
+                    "tertiary-fixed-dim": "#ffb68f",
+                    "on-primary": "#0d00aa",
+                    "error": "#ffb4ab",
+                    "tertiary": "#ffb68f",
+                    "on-tertiary": "#542100",
+                    "secondary": "#c0c1ff",
+                    "on-primary-fixed-variant": "#2623d1",
+                    "on-tertiary-container": "#fffcff",
+                    "on-secondary-container": "#afb2ff",
+                    "surface-tint": "#c0c1ff",
+                    "primary-container": "#5b5fff",
+                    "outline-variant": "#454555",
+                    "on-primary-fixed": "#05006c",
+                    "secondary-fixed-dim": "#c0c1ff",
+                    "secondary-container": "#3f4287",
+                    "primary-fixed-dim": "#c0c1ff",
+                    "primary-fixed": "#e1e0ff",
+                    "on-tertiary-fixed-variant": "#773200",
+                    "on-primary-container": "#fffcff",
+                    "surface-container-low": "#1b1b20",
+                    "inverse-on-surface": "#303036",
+                    "on-error": "#690005",
+                    "surface-dim": "#131318",
+                    "surface-bright": "#39383e",
+                    "secondary-fixed": "#e1e0ff",
+                    "on-background": "#e4e1e9",
+                    "tertiary-fixed": "#ffdbca",
+                    "surface-container-lowest": "#0e0e13",
+                    "tertiary-container": "#c05500",
+                    "on-tertiary-fixed": "#331100",
+                    "surface": "#131318",
+                    "primary": "#c0c1ff",
+                    "on-surface-variant": "#c6c4d8",
+                    "on-error-container": "#ffdad6",
+                    "surface-container-highest": "#35343a",
+                    "error-container": "#93000a",
+                    "on-secondary-fixed-variant": "#3d3f84",
+                    "inverse-surface": "#e4e1e9"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter", "sans-serif"],
+                    "body": ["Inter", "sans-serif"],
+                    "label": ["Inter", "sans-serif"],
+                    "mono": ["JetBrains Mono", "monospace"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        /* Custom Liquid Component Intro Animation Placeholder (no JS/CSS animation as per constraints, static base state) */
+        .glass-overlay {
+            background-color: rgba(53, 52, 58, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        .ai-pulse-dot {
+            position: relative;
+        }
+        .ai-pulse-dot::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 1px solid #C0C1FF;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body overflow-hidden h-screen flex selection:bg-primary-container/30">
+<!-- SideNavBar (from JSON) -->
+<nav class="flex flex-col fixed left-0 top-0 h-full py-6 bg-[#0E0E13] text-[#5B5FFF] font-['Inter'] text-sm tracking-wide h-screen w-64 border-r border-[#454555]/15 shadow-[24px_0_48px_rgba(0,0,0,0.4)] z-40 hidden md:flex">
+<!-- Header -->
+<div class="px-6 mb-8 flex flex-col gap-1">
+<h2 class="text-xl font-bold tracking-tight text-on-surface">Project Alpha</h2>
+<span class="text-xs text-[#908FA1]">v2.4.0-stable</span>
+</div>
+<!-- CTA -->
+<div class="px-4 mb-6">
+<button class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-gradient-to-br from-primary-container to-inverse-primary text-on-primary-container font-medium hover:brightness-110 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-[0_4px_12px_rgba(91,95,255,0.2)]">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                New Agent
+            </button>
+</div>
+<!-- Tabs -->
+<div class="flex-1 overflow-y-auto px-3 flex flex-col gap-1">
+<!-- Cognitive Lab -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">science</span>
+<span>Cognitive Lab</span>
+</a>
+<!-- Skills Library -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">extension</span>
+<span>Skills Library</span>
+</a>
+<!-- Diff Engine (Active) -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#1B1B20] text-[#C0C1FF] border-r-2 border-[#5B5FFF] transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">difference</span>
+<span class="font-semibold">Diff Engine</span>
+</a>
+<!-- Terminal -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">terminal</span>
+<span>Terminal</span>
+</a>
+<!-- System Health -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">pulse_alert</span>
+<span>System Health</span>
+</a>
+</div>
+<!-- Footer Tabs -->
+<div class="px-3 mt-auto pt-4 flex flex-col gap-1 border-t border-outline-variant/10">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200 group" href="#">
+<span class="material-symbols-outlined text-[18px] group-hover:text-primary transition-colors">menu_book</span>
+<span class="text-xs">Documentation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#908FA1] hover:bg-[#1B1B20] hover:text-white transition-all cubic-bezier(0.4, 0, 0.2, 1) duration-200 group" href="#">
+<span class="material-symbols-outlined text-[18px] group-hover:text-primary transition-colors">contact_support</span>
+<span class="text-xs">Support</span>
+</a>
+</div>
+</nav>
+<!-- Main Workspace Area -->
+<div class="flex-1 flex flex-col min-w-0 md:ml-64 relative bg-surface h-full">
+<!-- TopNavBar (from JSON) -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-[#131318]/80 backdrop-blur-xl font-['Inter'] antialiased docked full-width top-0 sticky z-50 border-b border-[#454555]/15 flat no shadows flex-shrink-0">
+<!-- Left: Search / Brand -->
+<div class="flex items-center gap-6">
+<!-- Mobile Menu Trigger -->
+<button class="md:hidden text-on-surface-variant hover:text-white transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-[#5B5FFF] hidden md:block">Genpulse AI</h1>
+<!-- Search Bar -->
+<div class="relative group hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+<input class="bg-surface-container-lowest text-sm text-on-surface placeholder:text-outline w-64 rounded-lg py-1.5 pl-10 pr-4 focus:outline-none focus:border-b-2 focus:border-primary transition-all bg-transparent border border-transparent focus:bg-surface-container-low" placeholder="Search commands..." type="text"/>
+</div>
+</div>
+<!-- Right: Actions -->
+<div class="flex items-center gap-4">
+<button class="text-[#908FA1] hover:text-white hover:bg-[#1B1B20] transition-colors p-2 rounded-full scale-95 duration-200 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full"></span>
+</button>
+<button class="text-[#908FA1] hover:text-white hover:bg-[#1B1B20] transition-colors p-2 rounded-full scale-95 duration-200 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+<button class="ml-2 flex items-center gap-2 py-1.5 px-4 rounded-lg bg-gradient-to-br from-primary-container to-inverse-primary text-on-primary-container text-sm font-medium hover:brightness-110 transition-all duration-200 shadow-[0_2px_8px_rgba(91,95,255,0.25)]">
+                    Deploy
+                </button>
+<div class="ml-2 w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/30 overflow-hidden shrink-0">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="Abstract gradient avatar indicating a user profile, dark blue and purple tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWTz5Py2Gga1DEsAcx24waYA9FMJpacO9fv7fhquWruNm1ixb6Tpc3l7mS1kH8gsqmDMQFd2BsncyNGCGgUy_Jt8Ozsnogb5b7ZmcPD6S5g8DWfCX_5S-tF_a2YJ00K2HtTtsb32WIFYfQZOY1xYHTDmAtfqf3i84oAmEXh0Qc-bwictjIjnfsngpl0HigwyTx_fBj6zS6GdJEtH8oYJGS2tZo-nexVSMgfbHm4IC3Uj6H70pyKNb2JvN-9qu0uQocBhl6d5eLXAnx"/>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 flex flex-col lg:flex-row p-4 md:p-6 gap-6 overflow-hidden bg-surface">
+<!-- Diff Engine View (Left/Main Pane) -->
+<section class="flex-[1.5] flex flex-col bg-surface-container-low rounded-xl shadow-[0_24px_48px_rgba(0,0,0,0.2)] overflow-hidden border border-outline-variant/10">
+<!-- Pane Header -->
+<div class="h-12 bg-surface-container-highest flex items-center justify-between px-4 shrink-0 border-b border-outline-variant/10">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">difference</span>
+<h3 class="text-sm font-medium text-on-surface tracking-wide">core_logic.py</h3>
+<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-container-low text-outline uppercase tracking-wider">MODIFIED</span>
+</div>
+<div class="flex items-center gap-4 text-xs font-mono">
+<div class="flex items-center gap-1.5 text-error-container opacity-80">
+<span class="w-2 h-2 rounded-full bg-error-container"></span> -4
+                        </div>
+<div class="flex items-center gap-1.5 text-primary opacity-80">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span> +6
+                        </div>
+</div>
+</div>
+<!-- Diff Content (Side-by-Side) -->
+<div class="flex-1 flex overflow-hidden font-mono text-[13px] leading-relaxed">
+<!-- Old Code Pane -->
+<div class="flex-1 bg-surface-container-lowest overflow-y-auto border-r border-outline-variant/10 flex flex-col">
+<div class="sticky top-0 bg-surface-container-highest/80 backdrop-blur-sm px-4 py-1.5 text-[11px] text-outline border-b border-outline-variant/10 flex justify-between items-center z-10">
+<span>原始版本 (Agent-Base)</span>
+<span class="material-symbols-outlined text-[14px]">history</span>
+</div>
+<div class="flex-1 p-0 select-text">
+<table class="w-full text-left border-collapse">
+<tbody>
+<tr class="hover:bg-surface-container-low/50 group">
+<td class="w-10 text-right pr-4 text-outline/50 select-none py-0.5">42</td>
+<td class="text-on-surface-variant py-0.5 whitespace-pre px-4">def analyze_sentiment(text):</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 group">
+<td class="w-10 text-right pr-4 text-outline/50 select-none py-0.5">43</td>
+<td class="text-on-surface-variant py-0.5 whitespace-pre px-4">    """分析文本的基础情感"""</td>
+</tr>
+<!-- Deletion Line -->
+<tr class="bg-error-container/20 group">
+<td class="w-10 text-right pr-4 text-error/70 select-none py-0.5 border-r border-error/30">44</td>
+<td class="text-on-surface py-0.5 whitespace-pre px-4 relative">    if not text:<span class="absolute left-0 top-0 bottom-0 w-0.5 bg-error"></span></td>
+</tr>
+<tr class="bg-error-container/20 group">
+<td class="w-10 text-right pr-4 text-error/70 select-none py-0.5 border-r border-error/30">45</td>
+<td class="text-on-surface py-0.5 whitespace-pre px-4 relative">        return "neutral"<span class="absolute left-0 top-0 bottom-0 w-0.5 bg-error"></span></td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 group">
+<td class="w-10 text-right pr-4 text-outline/50 select-none py-0.5">46</td>
+<td class="text-on-surface-variant py-0.5 whitespace-pre px-4"> </td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 group">
+<td class="w-10 text-right pr-4 text-outline/50 select-none py-0.5">47</td>
+<td class="text-on-surface-variant py-0.5 whitespace-pre px-4">    result = model.predict(text)</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 group">
+<td class="w-10 text-right pr-4 text-outline/50 select-none py-0.5">48</td>
+<td class="text-on-surface-variant py-0.5 whitespace-pre px-4">    return result.label</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- New Code Pane -->
+<div class="flex-1 bg-surface-container-lowest overflow-y-auto flex flex-col">
+<div class="sticky top-0 bg-surface-container-highest/80 backdrop-blur-sm px-4 py-1.5 text-[11px] text-outline border-b border-outline-variant/10 flex justify-between items-center z-10">
+<span>认知迭代 (Gen-Pulse-v2)</span>
+<div class="w-1.5 h-1.5 bg-primary rounded-full ai-pulse-dot"></div>
+</div>
+<div class="flex-1 p-0 select-text">
+<table class="w-full text-left border-collapse">
+<tbody>
+<tr class="hover:bg-surface-container-low/50 group">
+<td class="w-10 text-right pr-4 text-outline/50 select-none py-0.5">42</td>
+<td class="text-on-surface-variant py-0.5 whitespace-pre px-4">def analyze_sentiment(text, deep_scan=False):</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 group">
+<td class="w-10 text-right pr-4 text-outline/50 select-none py-0.5">43</td>
+<td class="text-on-surface-variant py-0.5 whitespace-pre px-4">    """分析文本情感，支持深度扫描模式"""</td>
+</tr>
+<!-- Addition Lines -->
+<tr class="bg-primary-container/15 group">
+<td class="w-10 text-right pr-4 text-primary/80 select-none py-0.5 border-r border-primary/30">44</td>
+<td class="text-on-surface py-0.5 whitespace-pre px-4 relative">    if not text.strip():<span class="absolute left-0 top-0 bottom-0 w-0.5 bg-primary"></span></td>
+</tr>
+<tr class="bg-primary-container/15 group">
+<td class="w-10 text-right pr-4 text-primary/80 select-none py-0.5 border-r border-primary/30">45</td>
+<td class="text-on-surface py-0.5 whitespace-pre px-4 relative">        raise ValueError("输入内容不可为空")<span class="absolute left-0 top-0 bottom-0 w-0.5 bg-primary"></span></td>
+</tr>
+<tr class="bg-primary-container/15 group">
+<td class="w-10 text-right pr-4 text-primary/80 select-none py-0.5 border-r border-primary/30">46</td>
+<td class="text-on-surface py-0.5 whitespace-pre px-4 relative"> <span class="absolute left-0 top-0 bottom-0 w-0.5 bg-primary"></span></td>
+</tr>
+<tr class="bg-primary-container/15 group">
+<td class="w-10 text-right pr-4 text-primary/80 select-none py-0.5 border-r border-primary/30">47</td>
+<td class="text-on-surface py-0.5 whitespace-pre px-4 relative">    params = {"mode": "deep"} if deep_scan else {}<span class="absolute left-0 top-0 bottom-0 w-0.5 bg-primary"></span></td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 group">
+<td class="w-10 text-right pr-4 text-outline/50 select-none py-0.5">48</td>
+<td class="text-on-surface-variant py-0.5 whitespace-pre px-4">    result = model.predict(text, **params)</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 group">
+<td class="w-10 text-right pr-4 text-outline/50 select-none py-0.5">49</td>
+<td class="text-on-surface-variant py-0.5 whitespace-pre px-4">    return result.label</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="h-16 bg-surface-container-highest shrink-0 flex items-center justify-between px-6 border-t border-outline-variant/10">
+<div class="flex items-center gap-2 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-primary">auto_awesome</span>
+<span>AI 建议提高错误处理的严谨性</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-5 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:text-white hover:bg-surface-bright transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]">
+                            拒绝
+                        </button>
+<button class="px-5 py-2 rounded-lg text-sm font-medium bg-gradient-to-br from-primary-container to-inverse-primary text-on-primary-container hover:brightness-110 shadow-[0_4px_12px_rgba(91,95,255,0.2)] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">check</span>
+                            接受
+                        </button>
+</div>
+</div>
+</section>
+<!-- Terminal View (Right Pane) -->
+<section class="flex-1 flex flex-col bg-surface-container-low rounded-xl shadow-[0_12px_24px_rgba(0,0,0,0.2)] overflow-hidden border border-outline-variant/10">
+<!-- Term Header -->
+<div class="h-12 bg-surface-container-highest flex items-center justify-between px-4 shrink-0 border-b border-outline-variant/10">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline text-[18px]">terminal</span>
+<h3 class="text-sm font-medium text-on-surface tracking-wide">系统控制台</h3>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-outline hover:text-on-surface transition-colors p-1 rounded-md hover:bg-surface-bright">
+<span class="material-symbols-outlined text-[16px]">clear_all</span>
+</button>
+<button class="text-outline hover:text-on-surface transition-colors p-1 rounded-md hover:bg-surface-bright">
+<span class="material-symbols-outlined text-[16px]">open_in_full</span>
+</button>
+</div>
+</div>
+<!-- Term Body -->
+<div class="flex-1 bg-surface-container-lowest p-4 overflow-y-auto font-mono text-[13px] leading-relaxed relative">
+<div class="text-on-surface-variant mb-4 opacity-70">
+                        Genpulse AI Terminal v2.4.0 [Type 'help' for commands]
+                        <br/>Connected to cognitive kernel...
+                    </div>
+<div class="flex flex-col gap-1.5">
+<div class="flex gap-2">
+<span class="text-primary-container shrink-0">~ user@genpulse:</span>
+<span class="text-on-surface">agent diff --target core_logic.py</span>
+</div>
+<div class="text-outline pl-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-primary animate-spin" style="animation-duration: 2s;">sync</span>
+                            正在分析上下文结构...
+                        </div>
+<div class="text-success pl-4">✓ 依赖树解析完成 (120ms)</div>
+<div class="text-outline pl-4">&gt; 发现潜在的边界漏洞 (line: 44)</div>
+<div class="text-outline pl-4">&gt; 生成重构方案 [deep_scan 支持]</div>
+<div class="text-success pl-4">✓ 方案生成完毕。等待代码审查。</div>
+</div>
+<div class="mt-4 flex flex-col gap-1.5">
+<div class="flex gap-2 items-center">
+<span class="text-error-container shrink-0">WARN:</span>
+<span class="text-on-surface-variant">发现未捕获异常风险，建议增加 strict_mode 参数验证。</span>
+</div>
+</div>
+<!-- Active Prompt -->
+<div class="flex gap-2 mt-4 items-center">
+<span class="text-primary-container shrink-0">~ sys@agent:</span>
+<div class="flex items-center">
+<span class="w-2 h-4 bg-primary animate-pulse inline-block opacity-80"></span>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

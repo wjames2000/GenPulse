@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GenPulse AI - Execution Kanban Board</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-secondary": "#26286c",
+            "surface-dim": "#131318",
+            "on-error-container": "#ffdad6",
+            "primary-fixed": "#e1e0ff",
+            "on-primary-fixed-variant": "#2623d1",
+            "surface-variant": "#35343a",
+            "on-tertiary-fixed": "#331100",
+            "surface-container-low": "#1b1b20",
+            "surface-container-high": "#2a292f",
+            "on-tertiary": "#542100",
+            "primary": "#c0c1ff",
+            "tertiary-fixed": "#ffdbca",
+            "on-error": "#690005",
+            "surface-container-lowest": "#0e0e13",
+            "secondary-fixed-dim": "#c0c1ff",
+            "on-tertiary-container": "#fffcff",
+            "on-primary": "#0d00aa",
+            "background": "#131318",
+            "tertiary-fixed-dim": "#ffb68f",
+            "primary-container": "#5b5fff",
+            "surface-container": "#1f1f25",
+            "on-tertiary-fixed-variant": "#773200",
+            "inverse-primary": "#4345e8",
+            "on-surface-variant": "#c6c4d8",
+            "inverse-on-surface": "#303036",
+            "tertiary": "#ffb68f",
+            "surface": "#131318",
+            "outline": "#908fa1",
+            "on-primary-fixed": "#05006c",
+            "surface-container-highest": "#35343a",
+            "outline-variant": "#454555",
+            "secondary-container": "#3f4287",
+            "on-background": "#e4e1e9",
+            "error": "#ffb4ab",
+            "secondary-fixed": "#e1e0ff",
+            "on-secondary-container": "#afb2ff",
+            "on-secondary-fixed": "#0e0f58",
+            "on-primary-container": "#fffcff",
+            "primary-fixed-dim": "#c0c1ff",
+            "on-surface": "#e4e1e9",
+            "inverse-surface": "#e4e1e9",
+            "secondary": "#c0c1ff",
+            "error-container": "#93000a",
+            "surface-tint": "#c0c1ff",
+            "on-secondary-fixed-variant": "#3d3f84",
+            "surface-bright": "#39383e",
+            "tertiary-container": "#c05500",
+            "success": "#4ADE80"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          fontFamily: {
+            "headline": ["Inter", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Inter", "sans-serif"],
+            "code": ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: theme('colors.background');
+      color: theme('colors.on-surface');
+      font-family: theme('fontFamily.body');
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    .material-symbols-outlined {
+      vertical-align: middle;
+    }
+    .liquid-glass {
+      background-color: rgba(53, 52, 58, 0.6);
+      backdrop-filter: blur(20px);
+    }
+    .ghost-border {
+      box-shadow: inset 1px 1px 0px 0px rgba(69, 69, 85, 0.15);
+    }
+    .ambient-shadow {
+      box-shadow: 0px 24px 48px rgba(0, 0, 0, 0.4);
+    }
+    .primary-gradient-cta {
+      background: linear-gradient(135deg, theme('colors.primary-container'), theme('colors.inverse-primary'));
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: theme('colors.primary');
+      border-radius: 50%;
+      position: relative;
+    }
+    .pulse-dot::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      right: -4px;
+      bottom: -4px;
+      border-radius: 50%;
+      background-color: theme('colors.primary');
+      opacity: 0.4;
+      animation: pulse-ring 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { opacity: 0.4; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+    
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: theme('colors.surface-container-lowest');
+    }
+    ::-webkit-scrollbar-thumb {
+      background: theme('colors.surface-container-highest');
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: theme('colors.outline-variant');
+    }
+  </style>
+</head>
+<body class="antialiased flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full flex flex-col py-8 bg-[#131318] dark:bg-[#131318] h-screen w-64 border-r-0 bg-[#1B1B20] tonal-layering shadow-[24px_0_48px_rgba(0,0,0,0.4)] z-40 hidden md:flex">
+<div class="px-6 mb-8 flex items-center space-x-3">
+<img alt="Cognitive Command Logo" class="w-10 h-10 rounded-full object-cover" data-alt="Abstract glowing 3D geometric orb representing an AI brain in deep purple and blue tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJUjaB9ad3X6XK_PGQEJTeVZp3ncMEJ0zAfQ07ZHhZcn5V5rXvmBztLG_VmvEysChX7p6M-DqfVcXTwG5XcsMJx334a3wBIPgf2G-l9nMmtZqyOD53BCzRLk0RcqOao5cUltpqY6rO5kIIL2XtDNnizzcKEozeTuE22321zuK7KelDXaVbbWhJ5pgK2hBL1Ngq8vFzyyCdybR_JgnwQ865-pY_hylo4EEOMBUmsKBhMncSLpWY-aGNNGv2uQYn8d-4IQ0380v7eEUu"/>
+<div>
+<h1 class="text-xl font-black text-[#C0C1FF] tracking-tighter">Cognitive Lab</h1>
+<p class="text-xs text-[#908FA1] tracking-widest uppercase">AI Dev Environment</p>
+</div>
+</div>
+<div class="px-6 mb-8">
+<button class="w-full py-3 px-4 rounded-lg flex items-center justify-center space-x-2 primary-gradient-cta text-on-primary-container font-medium text-sm transition-all duration-200 hover:brightness-110 active:scale-95">
+<span class="material-symbols-outlined text-sm">add</span>
+<span>New Agent</span>
+</button>
+</div>
+<nav class="flex-1 overflow-y-auto">
+<ul class="space-y-1">
+<li>
+<a class="flex items-center space-x-3 font-['Inter'] label-sm font-medium uppercase tracking-widest text-[#908FA1] px-6 py-3 opacity-70 hover:bg-[#35343a] hover:opacity-100 transition-opacity ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">dashboard</span>
+<span>Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 font-['Inter'] label-sm font-medium uppercase tracking-widest bg-gradient-to-r from-[#5B5FFF]/20 to-transparent text-[#C0C1FF] border-l-4 border-[#5B5FFF] px-6 py-3 ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined text-[1.2rem]" style="font-variation-settings: 'FILL' 1;">schema</span>
+<span>Pipeline</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 font-['Inter'] label-sm font-medium uppercase tracking-widest text-[#908FA1] px-6 py-3 opacity-70 hover:bg-[#35343a] hover:opacity-100 transition-opacity ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">model_training</span>
+<span>Models</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 font-['Inter'] label-sm font-medium uppercase tracking-widest text-[#908FA1] px-6 py-3 opacity-70 hover:bg-[#35343a] hover:opacity-100 transition-opacity ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">smart_toy</span>
+<span>Agents</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 font-['Inter'] label-sm font-medium uppercase tracking-widest text-[#908FA1] px-6 py-3 opacity-70 hover:bg-[#35343a] hover:opacity-100 transition-opacity ease-in-out duration-200" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">settings</span>
+<span>Settings</span>
+</a>
+</li>
+</ul>
+</nav>
+<div class="mt-auto px-6 space-y-1">
+<a class="flex items-center space-x-3 font-['Inter'] label-sm font-medium uppercase tracking-widest text-[#908FA1] py-2 opacity-70 hover:text-[#C0C1FF] hover:opacity-100 transition-colors" href="#">
+<span class="material-symbols-outlined text-[1rem]">menu_book</span>
+<span>Documentation</span>
+</a>
+<a class="flex items-center space-x-3 font-['Inter'] label-sm font-medium uppercase tracking-widest text-[#908FA1] py-2 opacity-70 hover:text-[#C0C1FF] hover:opacity-100 transition-colors" href="#">
+<span class="material-symbols-outlined text-[1rem]">monitor_heart</span>
+<span>System Health</span>
+<div class="ml-auto w-2 h-2 rounded-full bg-success"></div>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-64 bg-surface-container-low min-h-screen relative">
+<!-- TopAppBar (Mobile Only for Shell Context, simplified here for Kanban focus, acting as header) -->
+<header class="w-full flex justify-between items-center px-8 h-20 bg-surface-container-low tonal-shift z-30 sticky top-0">
+<div>
+<h2 class="text-2xl font-bold tracking-tight text-on-surface font-headline">Execution Kanban</h2>
+<p class="text-sm text-outline font-body mt-1">Pipeline Alpha-7 Active</p>
+</div>
+<div class="flex items-center space-x-6">
+<div class="flex items-center space-x-2 text-sm text-outline">
+<span class="material-symbols-outlined text-[1.1rem]">schedule</span>
+<span class="font-code text-xs">Last sync: 2m ago</span>
+</div>
+<div class="flex items-center space-x-4">
+<button class="p-2 rounded-lg text-outline hover:bg-surface-variant hover:text-primary transition-all duration-200">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="p-2 rounded-lg text-outline hover:bg-surface-variant hover:text-primary transition-all duration-200">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+<button class="primary-gradient-cta px-4 py-2 rounded-lg text-on-primary-container text-sm font-medium hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-primary-container/20">
+             Deploy Pipeline
+           </button>
+</div>
+</div>
+</header>
+<!-- Kanban Canvas -->
+<main class="flex-1 p-8 overflow-x-auto flex space-x-6 items-start pb-12">
+<!-- Orchestrator Column -->
+<div class="w-[320px] shrink-0 flex flex-col max-h-full">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary text-[1.2rem]">psychology</span>
+<h3 class="text-sm font-medium uppercase tracking-widest text-on-surface font-label">Orchestrator</h3>
+<span class="bg-surface-container-highest text-outline text-xs px-2 py-0.5 rounded-full font-code">2</span>
+</div>
+<button class="text-outline hover:text-primary transition-colors"><span class="material-symbols-outlined text-[1.2rem]">add</span></button>
+</div>
+<div class="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
+<!-- Card 1 -->
+<div class="bg-surface-container-high rounded-lg p-5 ghost-border relative group hover:bg-surface-bright transition-colors duration-200 cursor-pointer">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[0.65rem] uppercase tracking-wider font-semibold text-primary bg-primary/10 px-2 py-1 rounded">In Progress</span>
+<img alt="Agent Icon" class="w-6 h-6 rounded-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" data-alt="Abstract metallic neural network node glowing purple" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9DEocclmBdS-GR6YVlqSu_mwzNIEbFjCsOQSvs-60Q_1ofdXAr1ECQBLkyr_op1he15PffgtYBSQFhzl98unNPq2JnBerTNH75x2tdVrADo6tyWWtgPY7PfQZle-ZQ-f8em1pBEU333jDHM77i8wnAvMy-gF236jFIU35t5tAX3VOnY6SCHqtuzpirL1phT33_tVYheWjIP-nWhhQ3G-Irar8zvM2nBNp6WH_EB7uPY4WoXQ8uY_lQH2-4Am5jh4uk3XYvrdqFtw9"/>
+</div>
+<h4 class="text-base font-semibold text-on-surface mb-2 font-headline">Analyze Requirements</h4>
+<p class="text-xs text-outline font-body leading-relaxed mb-4 line-clamp-2">Parse user intent and break down the initial prompt into discrete micro-services architectures.</p>
+<div class="flex items-center justify-between text-xs text-outline">
+<div class="flex items-center space-x-1 font-code">
+<span class="material-symbols-outlined text-[1rem]">terminal</span>
+<span>CMD-01</span>
+</div>
+<div class="flex items-center space-x-1">
+<div class="pulse-dot"></div>
+<span class="ml-2 text-primary font-medium">Active</span>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-high rounded-lg p-5 ghost-border relative group hover:bg-surface-bright transition-colors duration-200 cursor-pointer">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[0.65rem] uppercase tracking-wider font-semibold text-outline bg-surface-container-highest px-2 py-1 rounded">Pending</span>
+<img alt="Agent Icon" class="w-6 h-6 rounded-full object-cover opacity-60" data-alt="Abstract metallic neural network node glowing purple" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2FxDsOAUm5lD9hp_wd1wAu2XjKo0omT2_erq61ROpIwSXnjC6WHChTfDniDSk97CxXC7N5EIDXAoky3___p_98rPWzYaXV6hnoh17LfoKqlm2nYclXtttoTkShEgsZ14yfY9a1eYv8Ofi7HnJRPGpd6yWWXVsvhLy08TS0CyoHPY3QOfC5VsuRpVMbLSCPk_0NM5sNuFvvIJWDukV5f6jrsNa0OLt5n1kESmdHWJ8I7ACjeL9gUj3NPG358HcSXzn4KKSAN7VxYV6"/>
+</div>
+<h4 class="text-base font-semibold text-on-surface mb-2 font-headline">Allocate Resources</h4>
+<p class="text-xs text-outline font-body leading-relaxed mb-4 line-clamp-2">Determine compute requirements and assign virtual agents to development pods.</p>
+<div class="flex items-center justify-between text-xs text-outline">
+<div class="flex items-center space-x-1 font-code">
+<span class="material-symbols-outlined text-[1rem]">terminal</span>
+<span>CMD-02</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Architect Column -->
+<div class="w-[320px] shrink-0 flex flex-col max-h-full">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-tertiary text-[1.2rem]">architecture</span>
+<h3 class="text-sm font-medium uppercase tracking-widest text-on-surface font-label">Architect</h3>
+<span class="bg-surface-container-highest text-outline text-xs px-2 py-0.5 rounded-full font-code">1</span>
+</div>
+<button class="text-outline hover:text-primary transition-colors"><span class="material-symbols-outlined text-[1.2rem]">add</span></button>
+</div>
+<div class="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
+<!-- Card 3 -->
+<div class="bg-surface-container-high rounded-lg p-5 ghost-border relative group hover:bg-surface-bright transition-colors duration-200 cursor-pointer">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[0.65rem] uppercase tracking-wider font-semibold text-tertiary bg-tertiary/10 px-2 py-1 rounded">In Progress</span>
+<img alt="Agent Icon" class="w-6 h-6 rounded-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" data-alt="Geometric blueprint lines glowing in orange over dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBzd0c5qdfyDrPDv65gjZAblfipGGZYWVi0puMuYLV86wZHkQELAXy90W_TrHoMhAkaDVxcvQQ0Q5jyquTmwY-4GAAYGWQzfyQ14a9ZXtOr9GsyDlDr3XX6gytIMzXQvctblOnvBmGLvVWiHYj-zxQMGL1PFwKy_pjv0gKTZtjL1LeAuvqJGJd67fkuz6cgMtI8RDt8mn3ECXDWdaiJMjKizXaOUvZuvZnkTm4DqjwxRXPrHM6800N-K0l1d-3veuZ_7G7bx_v6ViN"/>
+</div>
+<h4 class="text-base font-semibold text-on-surface mb-2 font-headline">Design Database Schema</h4>
+<p class="text-xs text-outline font-body leading-relaxed mb-4 line-clamp-2">Draft relational tables for user profiles and authentication tokens.</p>
+<div class="flex items-center justify-between text-xs text-outline">
+<div class="flex items-center space-x-1 font-code">
+<span class="material-symbols-outlined text-[1rem]">database</span>
+<span>DB-01</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Developers Column -->
+<div class="w-[320px] shrink-0 flex flex-col max-h-full">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-secondary text-[1.2rem]">code</span>
+<h3 class="text-sm font-medium uppercase tracking-widest text-on-surface font-label">Developers</h3>
+<span class="bg-surface-container-highest text-outline text-xs px-2 py-0.5 rounded-full font-code">3</span>
+</div>
+<button class="text-outline hover:text-primary transition-colors"><span class="material-symbols-outlined text-[1.2rem]">add</span></button>
+</div>
+<div class="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
+<!-- Card 4 -->
+<div class="liquid-glass rounded-lg p-5 ghost-border relative group hover:bg-surface-bright/80 transition-colors duration-200 cursor-pointer ambient-shadow border-l-2 border-primary">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[0.65rem] uppercase tracking-wider font-semibold text-primary bg-primary/10 px-2 py-1 rounded">In Progress</span>
+<div class="flex -space-x-2">
+<img alt="Agent Icon" class="w-6 h-6 rounded-full object-cover border border-surface-variant" data-alt="Abstract binary code rain in blue over dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZQgleY3VkBjdiMGQ9sdcbJRSnZCT2XxDAKiRoLTZCqjXSQoEf8DqiZcPt9CZtjfwky-13Yv4gMYNLC_jZqD-0XfGAdwRFTOaf3TQKZNGO2bj1AFt1nW_mQ1T9QnHSFo6HmL_XWEmhTE4heLi2GeFYL1gzU72zph9n9iuXSaGEzstpKOS2rAR66hisMseknLBF1IM_VBQYfW2av36cS8awcDt9GDbgnrUiOmPh0t7YTi0ZGSnFRspFWGEb4utePuSfGmh7hZvBkucj"/>
+<img alt="Agent Icon" class="w-6 h-6 rounded-full object-cover border border-surface-variant" data-alt="Server rack lights glowing faintly in dark room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCx6zC6Fli2k3lNRTwmpGO9gqddMcuZH0LxdW_O7SdibSa6z7o9MuXq_iQm6d74chtIQdSnVU7FMHGpe84El7s2HK6WDf_gLbubdgdlRjKPNJdRK9dib8HOQ7ST8cn6jOWlvdSRT20F64TCysfYrcPlMnpA8SVZijmB-MORHWLf6czlk9_u21L64qPyMlEM6Ub_cnOtmqvJ9d9XJMyaCgS0_ik3h2dxQOvlb-9UgrZjo5hmxnyh12BCf7sAW4NvmbY_4rF26jodBC4C"/>
+</div>
+</div>
+<h4 class="text-base font-semibold text-on-surface mb-2 font-headline">API Route Generation</h4>
+<p class="text-xs text-on-surface-variant font-body leading-relaxed mb-4 line-clamp-2">Scaffold Express.js endpoints for authentication and user data retrieval based on architect schema.</p>
+<div class="bg-surface-container-lowest rounded p-2 mb-4">
+<code class="text-[0.65rem] font-code text-primary-fixed block">POST /api/v1/auth/login</code>
+<code class="text-[0.65rem] font-code text-primary-fixed block">GET /api/v1/users/:id</code>
+</div>
+<div class="flex items-center justify-between text-xs text-outline">
+<div class="flex items-center space-x-1 font-code">
+<span class="material-symbols-outlined text-[1rem]">api</span>
+<span>BE-04</span>
+</div>
+<div class="flex items-center space-x-1">
+<div class="pulse-dot"></div>
+<span class="ml-2 text-primary font-medium">Writing Code</span>
+</div>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="bg-surface-container-high rounded-lg p-5 ghost-border relative group hover:bg-surface-bright transition-colors duration-200 cursor-pointer">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[0.65rem] uppercase tracking-wider font-semibold text-success bg-success/10 px-2 py-1 rounded">Completed</span>
+<img alt="Agent Icon" class="w-6 h-6 rounded-full object-cover opacity-60" data-alt="Abstract binary code rain in blue over dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3usKmDTsEUd7aGwNOge2a7RASrLd93JhOiC_A-fU3LrwHAHV4dzXvAuZo3_1r34UREGmuc-h8E5NDepquSVuNZEzbImTtRGWQWNsCIgTmYbmfIGzjZCptl7eDHsdm5ibgvrX2HObVzhmBdFQoq8LQOBk1tYzVnHLJHtWBAq-RamIX_CyiWR9fjfmNsY5bSEgXDVSAYzVWa87n5ku2_sm7wZ9JISQFSGA4bY6y0lSU3oYRf5v1Yt7ay3mcw1h8hawTfKq7A4SBc65H"/>
+</div>
+<h4 class="text-base font-semibold text-on-surface mb-2 font-headline line-through opacity-70">Initialize Repo</h4>
+<p class="text-xs text-outline font-body leading-relaxed mb-4 line-clamp-2 opacity-70">Setup Next.js environment with Tailwind CSS and strict TypeScript config.</p>
+<div class="flex items-center justify-between text-xs text-outline opacity-70">
+<div class="flex items-center space-x-1 font-code">
+<span class="material-symbols-outlined text-[1rem]">folder</span>
+<span>FE-01</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- QA Column -->
+<div class="w-[320px] shrink-0 flex flex-col max-h-full">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-error text-[1.2rem]">fact_check</span>
+<h3 class="text-sm font-medium uppercase tracking-widest text-on-surface font-label">QA</h3>
+<span class="bg-surface-container-highest text-outline text-xs px-2 py-0.5 rounded-full font-code">1</span>
+</div>
+<button class="text-outline hover:text-primary transition-colors"><span class="material-symbols-outlined text-[1.2rem]">add</span></button>
+</div>
+<div class="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
+<!-- Card 6 -->
+<div class="bg-surface-container-high rounded-lg p-5 ghost-border relative group hover:bg-surface-bright transition-colors duration-200 cursor-pointer">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[0.65rem] uppercase tracking-wider font-semibold text-outline bg-surface-container-highest px-2 py-1 rounded">Pending</span>
+<img alt="Agent Icon" class="w-6 h-6 rounded-full object-cover opacity-60" data-alt="Microscope lens abstract view glowing faintly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXtzWeijKxea2pHe1vp5ItwIsX9jUhV1xqCDo6KjyvcrwcPVS-YQpnZNmjCvlBIN4rPq1XaeJetkFBIUITPLPy_dtTq9vG-6_LqNNal_xUvFS2Bv4tXVcWbU1EaoLvp6k84VTP0891YIe70PfKCp_DYTdVqPImF0YeRX3w4CHN55k9C9GKtL38p6MuC4QfO0x1cHHFE8CNhudTibRt4KaINSyT-QSxDw0qOXH0HWGxNxRld7AJTQmRMWl4wmfIfGiEHjMkYi51yqQt"/>
+</div>
+<h4 class="text-base font-semibold text-on-surface mb-2 font-headline">Unit Test DB Connections</h4>
+<p class="text-xs text-outline font-body leading-relaxed mb-4 line-clamp-2">Verify ORM models align with architect schema and test edge cases on insertion.</p>
+<div class="flex items-center justify-between text-xs text-outline">
+<div class="flex items-center space-x-1 font-code">
+<span class="material-symbols-outlined text-[1rem]">bug_report</span>
+<span>QA-01</span>
+</div>
+<span class="text-[0.65rem] px-2 py-0.5 bg-error-container text-error rounded font-medium">Blocked</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
