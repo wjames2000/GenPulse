@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"GenPulse/internal/genkit"
 	"GenPulse/internal/services"
@@ -49,6 +50,122 @@ func (a *App) Greet(name string) string {
 // GetAppInfo 获取应用信息
 func (a *App) GetAppInfo() map[string]interface{} {
 	return a.baseService.GetAppInfo()
+}
+
+// GetLogs 获取日志
+func (a *App) GetLogs() []map[string]interface{} {
+	// 暂时返回空数组
+	return []map[string]interface{}{}
+}
+
+// Agent相关命令
+
+// ListAgents 获取Agent列表
+func (a *App) ListAgents() ([]map[string]interface{}, error) {
+	agentManager := a.genkitManager.GetAgentManager()
+	if agentManager == nil {
+		return nil, fmt.Errorf("agent manager not initialized")
+	}
+
+	agents := agentManager.ListAgents()
+
+	// 转换为前端需要的格式
+	result := make([]map[string]interface{}, len(agents))
+	for i, agent := range agents {
+		result[i] = map[string]interface{}{
+			"id":          agent.ID,
+			"name":        agent.Name,
+			"role":        string(agent.Role),
+			"description": agent.Description,
+			"model_config": map[string]interface{}{
+				"type":     string(agent.ModelConfig.Type),
+				"name":     agent.ModelConfig.Name,
+				"provider": agent.ModelConfig.Provider,
+			},
+			"capabilities": agent.Capabilities,
+			"tools":        agent.Tools,
+			"enabled":      agent.Enabled,
+		}
+	}
+
+	return result, nil
+}
+
+// GetAgentStatus 获取Agent状态
+func (a *App) GetAgentStatus(agentId string) (map[string]interface{}, error) {
+	agentManager := a.genkitManager.GetAgentManager()
+	if agentManager == nil {
+		return nil, fmt.Errorf("agent manager not initialized")
+	}
+
+	status, err := agentManager.GetAgentStatus(agentId)
+	if err != nil {
+		return nil, err
+	}
+
+	return status, nil
+}
+
+// GetAllAgentsStatus 获取所有Agent状态
+func (a *App) GetAllAgentsStatus() (map[string]interface{}, error) {
+	agentManager := a.genkitManager.GetAgentManager()
+	if agentManager == nil {
+		return nil, fmt.Errorf("agent manager not initialized")
+	}
+
+	status := agentManager.GetAllAgentsStatus()
+	return status, nil
+}
+
+// ExecuteAgent 执行Agent任务
+func (a *App) ExecuteAgent(agentId string, task string, parameters map[string]interface{}) (map[string]interface{}, error) {
+	agentManager := a.genkitManager.GetAgentManager()
+	if agentManager == nil {
+		return nil, fmt.Errorf("agent manager not initialized")
+	}
+
+	ctx := context.Background()
+	result, err := agentManager.ExecuteAgent(ctx, agentId, task, parameters)
+	if err != nil {
+		return nil, err
+	}
+
+	// 转换为前端需要的格式
+	execution := map[string]interface{}{
+		"id":         fmt.Sprintf("exec-%d", time.Now().UnixNano()),
+		"agent_id":   agentId,
+		"task":       task,
+		"state":      "executing",
+		"started_at": time.Now().Format(time.RFC3339),
+		"parameters": parameters,
+	}
+
+	if result != nil {
+		execution["state"] = "completed"
+		execution["completed_at"] = time.Now().Format(time.RFC3339)
+		execution["result"] = result.Output
+
+		if !result.Success {
+			execution["state"] = "failed"
+			execution["error"] = "Task execution failed"
+		}
+	}
+
+	return execution, nil
+}
+
+// GetAgentExecutions 获取Agent执行历史
+func (a *App) GetAgentExecutions() ([]map[string]interface{}, error) {
+	// 这里应该从数据库或内存中获取执行历史
+	// 暂时返回空数组
+	return []map[string]interface{}{}, nil
+}
+
+// CancelAgentExecution 取消Agent执行
+func (a *App) CancelAgentExecution(executionId string) error {
+	// 这里应该实现取消逻辑
+	// 暂时返回成功
+	return nil
 }
 
 // HealthCheck 健康检查

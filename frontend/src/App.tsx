@@ -2,9 +2,10 @@ import {useEffect} from 'react';
 import './App.css';
 import {Greet} from "../wailsjs/go/main/App";
 import baseService from './services/baseService';
-import { useAppStore } from './stores/appStore';
+import { useAppStore, selectCurrentView } from './stores/appStore';
 import Layout from './components/Layout';
 import DashboardView from './components/views/DashboardView';
+import AgentView from './components/views/AgentView';
 
 function App() {
   const {
@@ -68,9 +69,21 @@ function App() {
     }
   }, [isInitialized]);
 
+  const currentView = useAppStore(selectCurrentView);
+
+  const renderView = () => {
+    switch (currentView) {
+      case 'agents':
+        return <AgentView />;
+      case 'dashboard':
+      default:
+        return <DashboardView />;
+    }
+  };
+
   return (
     <Layout>
-      <DashboardView />
+      {renderView()}
     </Layout>
   );
 }
