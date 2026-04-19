@@ -3,9 +3,15 @@ import './App.css';
 import {Greet} from "../wailsjs/go/main/App";
 import baseService from './services/baseService';
 import { useAppStore, selectCurrentView } from './stores/appStore';
-import Layout from './components/Layout';
-import DashboardView from './components/views/DashboardView';
-import AgentView from './components/views/AgentView';
+import LayoutGenpulse from './components/LayoutGenpulse';
+import DashboardViewGenpulse from './components/views/DashboardViewGenpulse';
+import AgentViewNew from './components/views/AgentViewNew';
+import ProjectsViewGenpulse from './components/views/ProjectsViewGenpulse';
+import SkillsViewGenpulse from './components/views/SkillsViewGenpulse';
+import MemoryViewGenpulse from './components/views/MemoryViewGenpulse';
+import KanbanViewGenpulse from './components/views/KanbanViewGenpulse';
+import TerminalViewGenpulse from './components/views/TerminalViewGenpulse';
+import SettingsViewDesign from './components/views/SettingsViewDesign';
 
 function App() {
   const {
@@ -73,18 +79,31 @@ function App() {
 
   const renderView = () => {
     switch (currentView) {
-      case 'agents':
-        return <AgentView />;
       case 'dashboard':
+        return <DashboardViewGenpulse />;
+      case 'projects':
+        return <ProjectsViewGenpulse />;
+      case 'agents':
+        return <AgentViewNew />;
+      case 'skills':
+        return <SkillsViewGenpulse />;
+      case 'memory':
+        return <MemoryViewGenpulse />;
+      case 'kanban':
+        return <KanbanViewGenpulse />;
+      case 'terminal':
+        return <TerminalViewGenpulse />;
+      case 'settings':
+        return <SettingsViewDesign />;
       default:
-        return <DashboardView />;
+        return <DashboardViewGenpulse />;
     }
   };
 
   return (
-    <Layout>
+    <LayoutGenpulse>
       {renderView()}
-    </Layout>
+    </LayoutGenpulse>
   );
 }
 

@@ -128,11 +128,12 @@ func (am *AgentManager) RegisterAgent(agent Agent) error {
 
 	agentID := agent.GetConfig().ID
 	if agentID == "" {
-		return fmt.Errorf("agent ID cannot be empty")
+		return NewAgentError(ErrInvalidConfig, "注册Agent失败", "Agent ID不能为空")
 	}
 
 	if _, exists := am.agents[agentID]; exists {
-		return fmt.Errorf("agent with ID %s already exists", agentID)
+		return NewAgentError(ErrInvalidConfig, "注册Agent失败", fmt.Sprintf("Agent ID %s 已存在", agentID)).
+			WithAgentID(agentID)
 	}
 
 	am.agents[agentID] = agent
@@ -169,7 +170,8 @@ func (am *AgentManager) GetAgent(agentID string) (Agent, error) {
 
 	agent, exists := am.agents[agentID]
 	if !exists {
-		return nil, fmt.Errorf("agent with ID %s not found", agentID)
+		return nil, NewAgentError(ErrInvalidConfig, "获取Agent失败", fmt.Sprintf("Agent ID %s 未找到", agentID)).
+			WithAgentID(agentID)
 	}
 
 	return agent, nil
@@ -225,7 +227,9 @@ func (am *AgentManager) ExecuteAgent(ctx context.Context, agentID string, task s
 	}
 
 	if !agent.IsEnabled() {
-		return nil, fmt.Errorf("agent %s is disabled", agentID)
+		return nil, NewAgentError(ErrAgentDisabled, "执行Agent任务失败", fmt.Sprintf("Agent %s 已禁用", agentID)).
+			WithAgentID(agentID).
+			WithTask(task)
 	}
 
 	utils.Info("执行Agent任务: %s -> %s", agent.GetConfig().Name, task)

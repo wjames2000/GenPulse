@@ -101,6 +101,56 @@ type AgentArtifact struct {
 	Description string      `json:"description,omitempty"`
 }
 
+// AgentError Agent错误类型
+type AgentError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Details string `json:"details,omitempty"`
+	AgentID string `json:"agent_id,omitempty"`
+	Task    string `json:"task,omitempty"`
+}
+
+// Error 实现error接口
+func (e *AgentError) Error() string {
+	return fmt.Sprintf("[%s] %s: %s", e.Code, e.Message, e.Details)
+}
+
+// NewAgentError 创建Agent错误
+func NewAgentError(code, message, details string) *AgentError {
+	return &AgentError{
+		Code:    code,
+		Message: message,
+		Details: details,
+	}
+}
+
+// WithAgentID 设置Agent ID
+func (e *AgentError) WithAgentID(agentID string) *AgentError {
+	e.AgentID = agentID
+	return e
+}
+
+// WithTask 设置任务
+func (e *AgentError) WithTask(task string) *AgentError {
+	e.Task = task
+	return e
+}
+
+// AgentErrorCode Agent错误码
+const (
+	ErrAgentDisabled       = "AGENT_DISABLED"
+	ErrAgentBusy           = "AGENT_BUSY"
+	ErrAgentNotInitialized = "AGENT_NOT_INITIALIZED"
+	ErrTaskValidation      = "TASK_VALIDATION"
+	ErrTaskExecution       = "TASK_EXECUTION"
+	ErrToolNotFound        = "TOOL_NOT_FOUND"
+	ErrToolDisabled        = "TOOL_DISABLED"
+	ErrModelNotAvailable   = "MODEL_NOT_AVAILABLE"
+	ErrTimeout             = "TIMEOUT"
+	ErrMaxRetriesExceeded  = "MAX_RETRIES_EXCEEDED"
+	ErrInvalidConfig       = "INVALID_CONFIG"
+)
+
 // Agent interface Agent接口
 type Agent interface {
 	// 基本信息
@@ -144,11 +194,11 @@ type BaseAgent struct {
 // NewBaseAgent 创建基础Agent
 func NewBaseAgent(config AgentConfig, modelAdapter *models.UnifiedModelAdapter, toolRegistry *tools.ToolRegistry, flowEngine *flows.FlowEngine) (*BaseAgent, error) {
 	if config.ID == "" {
-		return nil, fmt.Errorf("agent ID is required")
+		return nil, NewAgentError(ErrInvalidConfig, "Agent配置无效", "Agent ID不能为空")
 	}
 
 	if config.Name == "" {
-		return nil, fmt.Errorf("agent name is required")
+		return nil, NewAgentError(ErrInvalidConfig, "Agent配置无效", "Agent名称不能为空")
 	}
 
 	// 设置默认值
@@ -194,16 +244,20 @@ func (a *BaseAgent) GetExecution() *AgentExecution {
 // Execute 执行任务（基础实现，需要子类重写）
 func (a *BaseAgent) Execute(ctx context.Context, task string, parameters map[string]interface{}) (*AgentResult, error) {
 	if !a.enabled {
-		return nil, fmt.Errorf("agent is disabled")
+		return nil, NewAgentError(ErrAgentDisabled, "Agent已禁用", "").
+			WithAgentID(a.config.ID)
 	}
 
 	if a.state != StateIdle {
-		return nil, fmt.Errorf("agent is busy, current state: %s", a.state)
+		return nil, NewAgentError(ErrAgentBusy, "Agent正忙", fmt.Sprintf("当前状态: %s", a.state)).
+			WithAgentID(a.config.ID)
 	}
 
 	// 验证任务
 	if err := a.ValidateTask(task); err != nil {
-		return nil, fmt.Errorf("task validation failed: %w", err)
+		return nil, NewAgentError(ErrTaskValidation, "任务验证失败", err.Error()).
+			WithAgentID(a.config.ID).
+			WithTask(task)
 	}
 
 	// 创建执行上下文
@@ -263,16 +317,16 @@ func (a *BaseAgent) Cancel() error {
 // ValidateTask 验证任务（基础实现）
 func (a *BaseAgent) ValidateTask(task string) error {
 	if task == "" {
-		return fmt.Errorf("task cannot be empty")
+		return NewAgentError(ErrTaskValidation, "任务验证失败", "任务不能为空")
 	}
 
 	// 检查任务长度
 	if len(task) < 5 {
-		return fmt.Errorf("task is too short")
+		return NewAgentError(ErrTaskValidation, "任务验证失败", "任务太短（至少5个字符）")
 	}
 
 	if len(task) > 1000 {
-		return fmt.Errorf("task is too long")
+		return NewAgentError(ErrTaskValidation, "任务验证失败", "任务太长（最多1000个字符）")
 	}
 
 	return nil
@@ -281,24 +335,28 @@ func (a *BaseAgent) ValidateTask(task string) error {
 // Initialize 初始化Agent
 func (a *BaseAgent) Initialize() error {
 	if a.state != StateIdle {
-		return fmt.Errorf("agent is not idle, cannot initialize")
+		return NewAgentError(ErrAgentBusy, "Agent初始化失败", "Agent不处于空闲状态").
+			WithAgentID(a.config.ID)
 	}
 
 	// 检查模型适配器
 	if a.modelAdapter == nil {
-		return fmt.Errorf("model adapter is required")
+		return NewAgentError(ErrInvalidConfig, "Agent初始化失败", "模型适配器不能为空").
+			WithAgentID(a.config.ID)
 	}
 
 	// 检查工具注册表
 	if a.toolRegistry == nil {
-		return fmt.Errorf("tool registry is required")
+		return NewAgentError(ErrInvalidConfig, "Agent初始化失败", "工具注册表不能为空").
+			WithAgentID(a.config.ID)
 	}
 
 	// 验证工具可用性
 	for _, toolID := range a.config.Tools {
 		tool, err := a.toolRegistry.GetTool(toolID)
 		if err != nil {
-			return fmt.Errorf("tool %s not found: %w", toolID, err)
+			return NewAgentError(ErrToolNotFound, "Agent初始化失败", fmt.Sprintf("工具 %s 未找到: %v", toolID, err)).
+				WithAgentID(a.config.ID)
 		}
 
 		if !tool.IsEnabled() {
@@ -418,16 +476,19 @@ func (a *BaseAgent) RemoveCapability(capability AgentCapability) {
 // ExecuteTool 执行工具
 func (a *BaseAgent) ExecuteTool(ctx context.Context, toolID string, parameters map[string]interface{}) (*tools.ToolResult, error) {
 	if a.toolRegistry == nil {
-		return nil, fmt.Errorf("tool registry not available")
+		return nil, NewAgentError(ErrInvalidConfig, "执行工具失败", "工具注册表不可用").
+			WithAgentID(a.config.ID)
 	}
 
 	tool, err := a.toolRegistry.GetTool(toolID)
 	if err != nil {
-		return nil, fmt.Errorf("tool %s not found: %w", toolID, err)
+		return nil, NewAgentError(ErrToolNotFound, "执行工具失败", fmt.Sprintf("工具 %s 未找到", toolID)).
+			WithAgentID(a.config.ID)
 	}
 
 	if !tool.IsEnabled() {
-		return nil, fmt.Errorf("tool %s is disabled", toolID)
+		return nil, NewAgentError(ErrToolDisabled, "执行工具失败", fmt.Sprintf("工具 %s 已禁用", toolID)).
+			WithAgentID(a.config.ID)
 	}
 
 	execution := tools.ToolExecution{
@@ -447,12 +508,14 @@ func (a *BaseAgent) ExecuteTool(ctx context.Context, toolID string, parameters m
 // GenerateWithModel 使用模型生成内容
 func (a *BaseAgent) GenerateWithModel(ctx context.Context, prompt string) (*models.ModelResponse, error) {
 	if a.modelAdapter == nil {
-		return nil, fmt.Errorf("model adapter not available")
+		return nil, NewAgentError(ErrInvalidConfig, "调用模型失败", "模型适配器不可用").
+			WithAgentID(a.config.ID)
 	}
 
 	modelName := a.config.ModelConfig.Name
 	if modelName == "" {
-		return nil, fmt.Errorf("model name not configured")
+		return nil, NewAgentError(ErrInvalidConfig, "调用模型失败", "模型名称未配置").
+			WithAgentID(a.config.ID)
 	}
 
 	request := models.ModelRequest{
@@ -466,12 +529,14 @@ func (a *BaseAgent) GenerateWithModel(ctx context.Context, prompt string) (*mode
 // GenerateStreamWithModel 使用模型流式生成内容
 func (a *BaseAgent) GenerateStreamWithModel(ctx context.Context, prompt string, callback func(*models.ModelResponse)) error {
 	if a.modelAdapter == nil {
-		return fmt.Errorf("model adapter not available")
+		return NewAgentError(ErrInvalidConfig, "流式调用模型失败", "模型适配器不可用").
+			WithAgentID(a.config.ID)
 	}
 
 	modelName := a.config.ModelConfig.Name
 	if modelName == "" {
-		return fmt.Errorf("model name not configured")
+		return NewAgentError(ErrInvalidConfig, "流式调用模型失败", "模型名称未配置").
+			WithAgentID(a.config.ID)
 	}
 
 	request := models.ModelRequest{
