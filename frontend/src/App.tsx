@@ -4,14 +4,15 @@ import {Greet} from "../wailsjs/go/main/App";
 import baseService from './services/baseService';
 import { useAppStore, selectCurrentView } from './stores/appStore';
 import LayoutGenpulse from './components/LayoutGenpulse';
-import DashboardViewGenpulse from './components/views/DashboardViewGenpulse';
+import DashboardViewGenpulseThree from './components/views/DashboardViewGenpulseThree';
 import AgentViewNew from './components/views/AgentViewNew';
-import ProjectsViewGenpulse from './components/views/ProjectsViewGenpulse';
-import SkillsViewGenpulse from './components/views/SkillsViewGenpulse';
-import MemoryViewGenpulse from './components/views/MemoryViewGenpulse';
-import KanbanViewGenpulse from './components/views/KanbanViewGenpulse';
-import TerminalViewGenpulse from './components/views/TerminalViewGenpulse';
-import SettingsViewDesign from './components/views/SettingsViewDesign';
+import ProjectsViewGenpulseThree from './components/views/ProjectsViewGenpulseThree';
+import SkillsViewGenpulseThree from './components/views/SkillsViewGenpulseThree';
+import MemoryViewGenpulseThree from './components/views/MemoryViewGenpulseThree';
+import KanbanViewGenpulseThree from './components/views/KanbanViewGenpulseThree';
+import TerminalViewGenpulseThree from './components/views/TerminalViewGenpulseThree';
+import AgentViewGenpulseThree from './components/views/AgentViewGenpulseThree';
+import SettingsViewDesignThree from './components/views/SettingsViewDesignThree';
 
 function App() {
   const {
@@ -80,23 +81,23 @@ function App() {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <DashboardViewGenpulse />;
+        return <DashboardViewGenpulseThree />;
       case 'projects':
-        return <ProjectsViewGenpulse />;
+        return <ProjectsViewGenpulseThree />;
       case 'agents':
-        return <AgentViewNew />;
+        return <AgentViewGenpulseThree />;
       case 'skills':
-        return <SkillsViewGenpulse />;
+        return <SkillsViewGenpulseThree />;
       case 'memory':
-        return <MemoryViewGenpulse />;
+        return <MemoryViewGenpulseThree />;
       case 'kanban':
-        return <KanbanViewGenpulse />;
+        return <KanbanViewGenpulseThree />;
       case 'terminal':
-        return <TerminalViewGenpulse />;
+        return <TerminalViewGenpulseThree />;
       case 'settings':
-        return <SettingsViewDesign />;
+        return <SettingsViewDesignThree />;
       default:
-        return <DashboardViewGenpulse />;
+        return <DashboardViewGenpulseThree />;
     }
   };
 

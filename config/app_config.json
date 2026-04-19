@@ -1,0 +1,18 @@
+{
+  "app_name": "GenPulse",
+  "app_version": "1.0.0",
+  "log_level": "info",
+  "log_to_file": true,
+  "workspace_path": "workspace",
+  "max_file_size": 10485760,
+  "default_model": "gemini-1.5-pro",
+  "fallback_model": "gpt-4-turbo",
+  "max_tokens": 4096,
+  "temperature": 0.7,
+  "api_keys": {},
+  "http_proxy": "",
+  "https_proxy": "",
+  "enable_auto_save": true,
+  "auto_save_interval": 300,
+  "max_history_items": 100
+}
