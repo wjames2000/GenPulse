@@ -158,13 +158,12 @@ dev() {
     log_info "启动开发模式..."
     check_environment
     
-    # 生成 Wails 绑定
-    log_info "生成 Wails 绑定..."
-    cd "$PROJECT_ROOT"
-    wails generate module
+    # 安装依赖
+    install_deps
     
     # 启动开发服务器
     log_info "启动开发服务器..."
+    cd "$PROJECT_ROOT"
     wails dev
 }
 
@@ -179,46 +178,61 @@ build() {
     # 安装依赖
     install_deps
     
+    # 确保前端已构建
+    log_info "构建前端..."
+    cd "$FRONTEND_DIR"
+    npm run build
+    
     # 构建命令
     cd "$PROJECT_ROOT"
     
     local BUILD_CMD="wails build"
     local OUTPUT_NAME="GenPulse"
     
+    # 根据平台设置输出文件名
     case "$PLATFORM" in
         "darwin")
-            BUILD_CMD="$BUILD_CMD -platform darwin"
             OUTPUT_NAME="$OUTPUT_NAME.app"
             ;;
         "windows")
-            BUILD_CMD="$BUILD_CMD -platform windows"
             OUTPUT_NAME="$OUTPUT_NAME.exe"
             ;;
         "linux")
-            BUILD_CMD="$BUILD_CMD -platform linux"
-            OUTPUT_NAME="$OUTPUT_NAME"
-            ;;
-        *)
-            BUILD_CMD="$BUILD_CMD"
             OUTPUT_NAME="$OUTPUT_NAME"
             ;;
     esac
     
-    if [ -n "$ARCH" ]; then
-        BUILD_CMD="$BUILD_CMD -arch $ARCH"
+    # 设置平台参数
+    if [ -n "$ARCH" ] && [ "$ARCH" != "x86_64" ] && [ "$ARCH" != "amd64" ]; then
+        # 对于非默认架构，需要指定平台/架构组合
+        BUILD_CMD="$BUILD_CMD -platform $PLATFORM/$ARCH"
+    elif [ "$PLATFORM" != "$(uname -s | tr '[:upper:]' '[:lower:]')" ]; then
+        # 跨平台构建
+        BUILD_CMD="$BUILD_CMD -platform $PLATFORM"
     fi
     
     # 执行构建
     log_info "执行构建命令: $BUILD_CMD"
     if eval "$BUILD_CMD"; then
-        log_success "构建成功: $OUTPUT_NAME"
+        log_success "构建成功"
         
         # 复制到 bin 目录
-        local BUILD_OUTPUT="$PROJECT_ROOT/build/$OUTPUT_NAME"
-        if [ -f "$BUILD_OUTPUT" ] || [ -d "$BUILD_OUTPUT" ]; then
+        local BUILD_OUTPUT_DIR="$PROJECT_ROOT/build/bin"
+        if [ -d "$BUILD_OUTPUT_DIR" ]; then
             mkdir -p "$BIN_DIR/$PLATFORM-$ARCH"
-            cp -r "$BUILD_OUTPUT" "$BIN_DIR/$PLATFORM-$ARCH/"
-            log_info "已复制到: $BIN_DIR/$PLATFORM-$ARCH/"
+            
+            # 复制所有构建文件
+            cp -r "$BUILD_OUTPUT_DIR"/* "$BIN_DIR/$PLATFORM-$ARCH/" 2>/dev/null || true
+            
+            # 检查是否复制成功
+            if [ "$(ls -A "$BIN_DIR/$PLATFORM-$ARCH/" 2>/dev/null | wc -l)" -gt 0 ]; then
+                log_info "已复制到: $BIN_DIR/$PLATFORM-$ARCH/"
+                log_info "构建文件: $(ls "$BIN_DIR/$PLATFORM-$ARCH/")"
+            else
+                log_warning "构建文件未复制到 bin 目录"
+            fi
+        else
+            log_warning "未找到构建输出目录: $BUILD_OUTPUT_DIR"
         fi
     else
         log_error "构建失败"
@@ -357,6 +371,11 @@ main() {
     local COMMAND=$1
     local PLATFORM=$2
     local ARCH=$3
+    
+    # 转换架构名称
+    if [ "$ARCH" = "x86_64" ]; then
+        ARCH="amd64"
+    fi
     
     case "$COMMAND" in
         "check")
