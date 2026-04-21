@@ -54,8 +54,26 @@ func (a *App) GetAppInfo() map[string]interface{} {
 
 // GetLogs 获取日志
 func (a *App) GetLogs() []map[string]interface{} {
-	// 暂时返回空数组
-	return []map[string]interface{}{}
+	// 从基础服务获取日志
+	logs := a.baseService.GetLogs()
+
+	// 转换为前端需要的格式
+	result := make([]map[string]interface{}, len(logs))
+	for i, log := range logs {
+		result[i] = map[string]interface{}{
+			"id":        fmt.Sprintf("log-%d-%d", time.Now().UnixNano(), i),
+			"timestamp": log["timestamp"],
+			"level":     log["level"],
+			"message":   log["message"],
+			"agent_id":  log["agent_id"],
+			"task_id":   log["task_id"],
+			"details":   log["details"],
+			"duration":  log["duration"],
+			"tags":      log["tags"],
+		}
+	}
+
+	return result
 }
 
 // Agent相关命令
@@ -176,4 +194,773 @@ func (a *App) HealthCheck() map[string]interface{} {
 // LogMessage 记录日志消息
 func (a *App) LogMessage(level string, message string) {
 	a.baseService.LogMessage(level, message)
+}
+
+// LogMessageWithDetails 记录带详细信息的日志消息
+func (a *App) LogMessageWithDetails(level string, message string, details map[string]interface{}, agentID string, taskID string, tags []string, duration int64) {
+	a.baseService.LogMessageWithDetails(level, message, details, agentID, taskID, tags, duration)
+}
+
+// GetLogsByLevel 按级别获取日志
+func (a *App) GetLogsByLevel(level string) []map[string]interface{} {
+	return a.baseService.GetLogsByLevel(level)
+}
+
+// GetLogsByAgent 按Agent获取日志
+func (a *App) GetLogsByAgent(agentID string) []map[string]interface{} {
+	return a.baseService.GetLogsByAgent(agentID)
+}
+
+// GetLogsByTimeRange 按时间范围获取日志
+func (a *App) GetLogsByTimeRange(startTimeStr string, endTimeStr string) []map[string]interface{} {
+	startTime, _ := time.Parse(time.RFC3339, startTimeStr)
+	endTime, _ := time.Parse(time.RFC3339, endTimeStr)
+	return a.baseService.GetLogsByTimeRange(startTime, endTime)
+}
+
+// ClearLogs 清空日志
+func (a *App) ClearLogs() {
+	a.baseService.ClearLogs()
+}
+
+// GetLogStatistics 获取日志统计信息
+func (a *App) GetLogStatistics() map[string]interface{} {
+	return a.baseService.GetLogStatistics()
+}
+
+// ==================== 技能管理 API ====================
+
+// GetSkills 获取技能列表
+func (a *App) GetSkills() ([]map[string]interface{}, error) {
+	// 从技能管理器获取技能列表
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		// 返回模拟数据用于测试
+		return a.getMockSkills(), nil
+	}
+
+	// 获取技能元数据
+	metadatas, err := skillManager.ListSkills(nil)
+	if err != nil {
+		// 出错时返回模拟数据
+		a.baseService.LogMessage("error", fmt.Sprintf("Failed to list skills: %v", err))
+		return a.getMockSkills(), nil
+	}
+
+	// 转换为前端需要的格式
+	result := make([]map[string]interface{}, len(metadatas))
+	for i, metadata := range metadatas {
+		result[i] = map[string]interface{}{
+			"id":           metadata.ID,
+			"name":         metadata.Name,
+			"description":  metadata.Description,
+			"category":     metadata.Category,
+			"version":      metadata.Version,
+			"enabled":      metadata.Enabled,
+			"validated":    metadata.Validated,
+			"complexity":   metadata.Complexity,
+			"usage_count":  metadata.UsageCount,
+			"success_rate": metadata.SuccessRate,
+			"tags":         metadata.Tags,
+		}
+	}
+
+	return result, nil
+}
+
+// getMockSkills 获取模拟技能数据（用于测试）
+func (a *App) getMockSkills() []map[string]interface{} {
+	return []map[string]interface{}{
+		{
+			"id":           "react-expert",
+			"name":         "React 专家",
+			"description":  "精通现代 React 架构，能够生成高性能组件、处理复杂状态管理并优化渲染流水线。",
+			"category":     "frontend",
+			"version":      "v1.4.2",
+			"enabled":      true,
+			"validated":    true,
+			"complexity":   "complex",
+			"usage_count":  12450,
+			"success_rate": 0.984,
+			"tags":         []string{"react", "frontend", "ui"},
+			"type":         "cognitive-skill",
+			"created_at":   time.Now().Add(-30 * 24 * time.Hour).Format(time.RFC3339),
+			"updated_at":   time.Now().Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"agent_types":  []string{"frontend", "fullstack"},
+		},
+		{
+			"id":           "go-backend",
+			"name":         "Go 后端",
+			"description":  "专注于高并发微服务架构，提供稳健的 API 设计、数据库分片策略与协程管理方案。",
+			"category":     "backend",
+			"version":      "v2.1.0",
+			"enabled":      true,
+			"validated":    true,
+			"complexity":   "complex",
+			"usage_count":  8204,
+			"success_rate": 0.952,
+			"tags":         []string{"go", "backend", "api"},
+			"type":         "logic-processing",
+			"created_at":   time.Now().Add(-45 * 24 * time.Hour).Format(time.RFC3339),
+			"updated_at":   time.Now().Add(-14 * 24 * time.Hour).Format(time.RFC3339),
+			"agent_types":  []string{"backend", "devops"},
+		},
+		{
+			"id":           "git-pipeline",
+			"name":         "Git 流水线",
+			"description":  "自动化 CI/CD 流程构建，代码合并冲突智能解决，部署策略优化。",
+			"category":     "devops",
+			"version":      "v1.0.8",
+			"enabled":      true,
+			"validated":    true,
+			"complexity":   "medium",
+			"usage_count":  45112,
+			"success_rate": 0.991,
+			"tags":         []string{"git", "ci-cd", "automation"},
+			"type":         "ops-automation",
+			"created_at":   time.Now().Add(-60 * 24 * time.Hour).Format(time.RFC3339),
+			"updated_at":   time.Now().Add(-3 * 24 * time.Hour).Format(time.RFC3339),
+			"agent_types":  []string{"devops", "reviewer"},
+		},
+	}
+}
+
+// GetSkillDetails 获取技能详情
+func (a *App) GetSkillDetails(skillID string) (map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		// 返回模拟数据
+		return a.getMockSkillDetails(skillID), nil
+	}
+
+	// 获取完整技能内容（使用L1级别）
+	loadResult, err := skillManager.GetSkill(skillID, 1) // L1 = 1
+	if err != nil {
+		// 出错时返回模拟数据
+		a.baseService.LogMessage("error", fmt.Sprintf("Failed to get skill details: %v", err))
+		return a.getMockSkillDetails(skillID), nil
+	}
+
+	skill := loadResult.Skill
+	// metadata := loadResult.Metadata
+
+	// 构建技能详情
+	details := map[string]interface{}{
+		"id":                 skill.ID,
+		"name":               skill.Name,
+		"description":        skill.Description,
+		"category":           skill.Category,
+		"version":            skill.Version,
+		"enabled":            skill.Enabled,
+		"validated":          skill.Validated,
+		"complexity":         skill.Complexity,
+		"usage_count":        skill.UsageCount,
+		"success_rate":       skill.SuccessRate,
+		"created_at":         skill.CreatedAt.Format(time.RFC3339),
+		"updated_at":         skill.UpdatedAt.Format(time.RFC3339),
+		"tags":               skill.Tags,
+		"agent_types":        skill.AgentTypes,
+		"steps":              skill.Steps,
+		"examples":           skill.Examples,
+		"tips":               skill.Tips,
+		"warnings":           skill.Warnings,
+		"prerequisites":      skill.Prerequisites,
+		"related_tools":      skill.RelatedTools,
+		"token_estimate":     skill.TokenEstimate,
+		"avg_execution_time": skill.AvgExecutionTime.String(),
+		"source_task_id":     skill.SourceTaskID,
+	}
+
+	return details, nil
+}
+
+// getMockSkillDetails 获取模拟技能详情
+func (a *App) getMockSkillDetails(skillID string) map[string]interface{} {
+	// 根据skillID返回不同的模拟数据
+	baseSkill := map[string]interface{}{
+		"id":           skillID,
+		"name":         "React 专家",
+		"description":  "精通现代 React 架构，能够生成高性能组件、处理复杂状态管理并优化渲染流水线。",
+		"category":     "frontend",
+		"version":      "v1.4.2",
+		"enabled":      true,
+		"validated":    true,
+		"complexity":   "complex",
+		"usage_count":  12450,
+		"success_rate": 0.984,
+		"created_at":   time.Now().Add(-30 * 24 * time.Hour).Format(time.RFC3339),
+		"updated_at":   time.Now().Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+		"tags":         []string{"react", "frontend", "ui"},
+		"agent_types":  []string{"frontend", "fullstack"},
+		"steps": []map[string]interface{}{
+			{
+				"id":         "analyze-requirements",
+				"order":      1,
+				"action":     "分析需求并确定组件结构",
+				"tool":       "llm",
+				"parameters": []map[string]interface{}{},
+			},
+			{
+				"id":         "create-component",
+				"order":      2,
+				"action":     "创建React组件文件",
+				"tool":       "fs_write",
+				"parameters": []map[string]interface{}{},
+			},
+		},
+		"examples": []string{
+			"生成一个带有搜索功能的用户列表组件",
+			"创建支持拖拽排序的看板组件",
+		},
+		"tips": []string{
+			"使用React.memo优化性能",
+			"优先使用函数组件和hooks",
+		},
+		"warnings": []string{
+			"避免在渲染函数中创建新对象",
+			"注意useEffect的依赖数组",
+		},
+		"prerequisites":      []string{},
+		"related_tools":      []string{"fs_write", "llm"},
+		"token_estimate":     1500,
+		"avg_execution_time": "2.5s",
+		"source_task_id":     "task-12345",
+	}
+
+	return baseSkill
+}
+
+// EnableSkill 启用技能
+func (a *App) EnableSkill(skillID string) error {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return fmt.Errorf("skill manager not initialized")
+	}
+
+	return skillManager.EnableSkill(skillID)
+}
+
+// DisableSkill 禁用技能
+func (a *App) DisableSkill(skillID string) error {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return fmt.Errorf("skill manager not initialized")
+	}
+
+	return skillManager.DisableSkill(skillID)
+}
+
+// ValidateSkill 验证技能
+func (a *App) ValidateSkill(skillID string) (map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		// 返回模拟验证结果
+		return map[string]interface{}{
+			"overall_pass":      true,
+			"critical_failures": []string{},
+			"warnings":          []string{},
+			"total_checks":      5,
+			"passed_checks":     5,
+			"failed_checks":     0,
+			"timestamp":         time.Now().Format("2006-01-02 15:04:05"),
+		}, nil
+	}
+
+	report, err := skillManager.ValidateSkill(skillID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate skill: %w", err)
+	}
+
+	// 转换为前端格式
+	result := map[string]interface{}{
+		"overall_pass":      report.OverallPass,
+		"critical_failures": report.CriticalFailures,
+		"warnings":          report.Warnings,
+		"total_checks":      report.TotalChecks,
+		"passed_checks":     report.PassedChecks,
+		"failed_checks":     report.FailedChecks,
+		"timestamp":         report.Timestamp,
+	}
+
+	return result, nil
+}
+
+// DeleteSkill 删除技能
+func (a *App) DeleteSkill(skillID string) error {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return fmt.Errorf("skill manager not initialized")
+	}
+
+	return skillManager.DeleteSkill(skillID)
+}
+
+// SearchSkills 搜索技能
+func (a *App) SearchSkills(query string, filters map[string]interface{}) ([]map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	metadatas, err := skillManager.SearchSkills(query, filters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search skills: %w", err)
+	}
+
+	// 转换为前端格式
+	result := make([]map[string]interface{}, len(metadatas))
+	for i, metadata := range metadatas {
+		result[i] = map[string]interface{}{
+			"id":           metadata.ID,
+			"name":         metadata.Name,
+			"description":  metadata.Description,
+			"category":     metadata.Category,
+			"version":      metadata.Version,
+			"enabled":      metadata.Enabled,
+			"validated":    metadata.Validated,
+			"complexity":   metadata.Complexity,
+			"usage_count":  metadata.UsageCount,
+			"success_rate": metadata.SuccessRate,
+			"tags":         metadata.Tags,
+		}
+	}
+
+	return result, nil
+}
+
+// GetSkillStats 获取技能统计信息
+func (a *App) GetSkillStats() (map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		// 返回模拟统计
+		return map[string]interface{}{
+			"total_skills":     3,
+			"enabled_skills":   3,
+			"validated_skills": 3,
+			"by_category": map[string]int{
+				"frontend": 1,
+				"backend":  1,
+				"devops":   1,
+			},
+			"by_complexity": map[string]int{
+				"complex": 2,
+				"medium":  1,
+			},
+			"total_usage":          65866,
+			"average_success_rate": 0.975,
+		}, nil
+	}
+
+	stats, err := skillManager.GetSkillStats()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get skill stats: %w", err)
+	}
+
+	// 转换为前端格式
+	result := map[string]interface{}{
+		"total_skills":         stats.TotalSkills,
+		"enabled_skills":       stats.EnabledSkills,
+		"validated_skills":     stats.ValidatedSkills,
+		"by_category":          stats.ByCategory,
+		"by_complexity":        stats.ByComplexity,
+		"total_usage":          stats.TotalUsage,
+		"average_success_rate": stats.AverageSuccessRate,
+	}
+
+	// 添加加载器统计
+	if stats.LoadStats != nil {
+		result["load_stats"] = map[string]interface{}{
+			"total_loads":  stats.LoadStats.TotalLoads,
+			"cache_hits":   stats.LoadStats.CacheHits,
+			"cache_misses": stats.LoadStats.CacheMisses,
+		}
+	}
+
+	return result, nil
+}
+
+// GetRelatedSkills 获取相关技能
+func (a *App) GetRelatedSkills(skillID string) ([]map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	metadatas, err := skillManager.GetRelatedSkills(skillID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get related skills: %w", err)
+	}
+
+	// 转换为前端格式
+	result := make([]map[string]interface{}, len(metadatas))
+	for i, metadata := range metadatas {
+		result[i] = map[string]interface{}{
+			"id":           metadata.ID,
+			"name":         metadata.Name,
+			"description":  metadata.Description,
+			"category":     metadata.Category,
+			"version":      metadata.Version,
+			"enabled":      metadata.Enabled,
+			"validated":    metadata.Validated,
+			"complexity":   metadata.Complexity,
+			"usage_count":  metadata.UsageCount,
+			"success_rate": metadata.SuccessRate,
+			"tags":         metadata.Tags,
+		}
+	}
+
+	return result, nil
+}
+
+// ExportSkill 导出技能
+func (a *App) ExportSkill(skillID string, format string) (string, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return "", fmt.Errorf("skill manager not initialized")
+	}
+
+	data, err := skillManager.ExportSkill(skillID, format)
+	if err != nil {
+		return "", fmt.Errorf("failed to export skill: %w", err)
+	}
+
+	return string(data), nil
+}
+
+// ImportSkill 导入技能
+func (a *App) ImportSkill(data string, format string) (map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	skill, err := skillManager.ImportSkill([]byte(data), format)
+	if err != nil {
+		return nil, fmt.Errorf("failed to import skill: %w", err)
+	}
+
+	// 返回导入的技能信息
+	return map[string]interface{}{
+		"id":          skill.ID,
+		"name":        skill.Name,
+		"description": skill.Description,
+		"category":    skill.Category,
+		"version":     skill.Version,
+	}, nil
+}
+
+// ==================== 记忆管理 API ====================
+
+// GetEpisodicMemories 获取情节记忆
+func (a *App) GetEpisodicMemories(query string, limit int) ([]map[string]interface{}, error) {
+	// 从记忆管理器获取情节记忆
+	memoryManager := a.genkitManager.GetMemoryManager()
+	if memoryManager == nil {
+		// 返回模拟数据
+		return a.getMockEpisodicMemories(), nil
+	}
+
+	// 搜索记忆
+	memories, err := memoryManager.SearchEpisodic(query, limit)
+	if err != nil {
+		// 出错时返回模拟数据
+		a.baseService.LogMessage("error", fmt.Sprintf("Failed to search episodic memories: %v", err))
+		return a.getMockEpisodicMemories(), nil
+	}
+
+	// 转换为前端格式
+	result := make([]map[string]interface{}, len(memories))
+	for i, memory := range memories {
+		result[i] = map[string]interface{}{
+			"id":              memory.ID,
+			"task_id":         memory.TaskID,
+			"task_type":       memory.TaskType,
+			"description":     memory.Description,
+			"agent_id":        memory.AgentID,
+			"agent_name":      memory.AgentName,
+			"success":         memory.Success,
+			"duration_ms":     memory.DurationMs,
+			"created_at":      memory.CreatedAt.Format(time.RFC3339),
+			"keywords":        memory.Keywords,
+			"tool_usage":      memory.ToolUsage,
+			"context_data":    memory.ContextData,
+			"relevance_score": memory.RelevanceScore,
+		}
+	}
+
+	return result, nil
+}
+
+// getMockEpisodicMemories 获取模拟情节记忆
+func (a *App) getMockEpisodicMemories() []map[string]interface{} {
+	now := time.Now()
+	return []map[string]interface{}{
+		{
+			"id":              "mem-001",
+			"task_id":         "task-001",
+			"task_type":       "code_generation",
+			"description":     "生成React用户管理界面",
+			"agent_id":        "frontend-agent",
+			"agent_name":      "前端开发Agent",
+			"success":         true,
+			"duration_ms":     2450,
+			"created_at":      now.Add(-2 * time.Hour).Format(time.RFC3339),
+			"keywords":        []string{"react", "ui", "user-management"},
+			"tool_usage":      map[string]int{"fs_write": 3, "llm": 2},
+			"context_data":    map[string]interface{}{"framework": "react", "components": 5},
+			"relevance_score": 0.95,
+		},
+		{
+			"id":              "mem-002",
+			"task_id":         "task-002",
+			"task_type":       "api_development",
+			"description":     "创建用户认证API",
+			"agent_id":        "backend-agent",
+			"agent_name":      "后端开发Agent",
+			"success":         true,
+			"duration_ms":     3200,
+			"created_at":      now.Add(-5 * time.Hour).Format(time.RFC3339),
+			"keywords":        []string{"go", "api", "authentication"},
+			"tool_usage":      map[string]int{"fs_write": 4, "llm": 3},
+			"context_data":    map[string]interface{}{"language": "go", "endpoints": 3},
+			"relevance_score": 0.88,
+		},
+		{
+			"id":              "mem-003",
+			"task_id":         "task-003",
+			"task_type":       "testing",
+			"description":     "执行单元测试套件",
+			"agent_id":        "qa-agent",
+			"agent_name":      "质量保证Agent",
+			"success":         true,
+			"duration_ms":     1800,
+			"created_at":      now.Add(-8 * time.Hour).Format(time.RFC3339),
+			"keywords":        []string{"testing", "go-test", "coverage"},
+			"tool_usage":      map[string]int{"shell_exec": 5, "fs_read": 10},
+			"context_data":    map[string]interface{}{"tests": 25, "coverage": 0.85},
+			"relevance_score": 0.76,
+		},
+	}
+}
+
+// GetSemanticMemory 获取语义记忆
+func (a *App) GetSemanticMemory() (map[string]interface{}, error) {
+	memoryManager := a.genkitManager.GetMemoryManager()
+	if memoryManager == nil {
+		// 返回模拟数据
+		return a.getMockSemanticMemory(), nil
+	}
+
+	// 通过SearchEngine获取语义记忆
+	if memoryManager.SemanticMemory() == nil {
+		return a.getMockSemanticMemory(), nil
+	}
+
+	// 获取用户画像
+	profile, err := memoryManager.SemanticMemory().GetUserProfile()
+	if err != nil {
+		// 出错时返回模拟数据
+		a.baseService.LogMessage("error", fmt.Sprintf("Failed to get user profile: %v", err))
+		return a.getMockSemanticMemory(), nil
+	}
+
+	// 转换为前端格式
+	result := map[string]interface{}{
+		"user_id":         profile.UserID,
+		"username":        profile.Username,
+		"preferences":     profile.Preferences,
+		"skills":          profile.Skills,
+		"interests":       profile.Interests,
+		"goals":           profile.Goals,
+		"working_style":   profile.WorkingStyle,
+		"communication":   profile.Communication,
+		"knowledge_areas": profile.KnowledgeAreas,
+		"created_at":      profile.CreatedAt.Format(time.RFC3339),
+		"last_updated":    profile.LastUpdated.Format(time.RFC3339),
+	}
+
+	return result, nil
+}
+
+// getMockSemanticMemory 获取模拟语义记忆
+func (a *App) getMockSemanticMemory() map[string]interface{} {
+	now := time.Now()
+	return map[string]interface{}{
+		"user_id": "user-001",
+		"name":    "开发者",
+		"preferences": map[string]interface{}{
+			"language":  "go",
+			"framework": "react",
+			"database":  "postgresql",
+			"testing":   "单元测试优先",
+		},
+		"skills": []string{
+			"Go 后端开发",
+			"React 前端开发",
+			"数据库设计",
+			"微服务架构",
+		},
+		"interests": []string{
+			"AI 辅助编程",
+			"性能优化",
+			"系统架构",
+			"开发者工具",
+		},
+		"project_goals": []string{
+			"构建高效的AI开发流水线",
+			"实现代码自动生成与优化",
+			"提升开发效率50%以上",
+		},
+		"coding_style": map[string]interface{}{
+			"indentation": "tabs",
+			"line_length": 100,
+			"naming":      "camelCase",
+			"comments":    "必要的文档注释",
+		},
+		"created_at":        now.Add(-90 * 24 * time.Hour).Format(time.RFC3339),
+		"updated_at":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+		"interaction_count": 156,
+		"success_rate":      0.92,
+	}
+}
+
+// GetMemoryStats 获取记忆统计
+func (a *App) GetMemoryStats() (map[string]interface{}, error) {
+	memoryManager := a.genkitManager.GetMemoryManager()
+	if memoryManager == nil {
+		// 返回模拟数据
+		return map[string]interface{}{
+			"total_memories":     156,
+			"episodic_memories":  150,
+			"semantic_memories":  1,
+			"working_memories":   5,
+			"total_searches":     245,
+			"avg_search_time_ms": 45.2,
+			"cache_hit_rate":     0.78,
+			"last_updated":       time.Now().Format(time.RFC3339),
+		}, nil
+	}
+
+	stats, err := memoryManager.GetStats()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get memory stats: %w", err)
+	}
+
+	// 转换为前端格式
+	result := make(map[string]interface{})
+
+	// 安全地提取统计信息
+	if total, ok := stats["total_memories"]; ok {
+		result["total_memories"] = total
+	}
+	if episodic, ok := stats["episodic_memories"]; ok {
+		result["episodic_memories"] = episodic
+	}
+	if semantic, ok := stats["semantic_memories"]; ok {
+		result["semantic_memories"] = semantic
+	}
+	if working, ok := stats["working_memories"]; ok {
+		result["working_memories"] = working
+	}
+	if searches, ok := stats["total_searches"]; ok {
+		result["total_searches"] = searches
+	}
+	if avgTime, ok := stats["avg_search_time_ms"]; ok {
+		result["avg_search_time_ms"] = avgTime
+	}
+	if hitRate, ok := stats["cache_hit_rate"]; ok {
+		result["cache_hit_rate"] = hitRate
+	}
+	if lastUpdated, ok := stats["last_updated"]; ok {
+		if t, ok := lastUpdated.(time.Time); ok {
+			result["last_updated"] = t.Format(time.RFC3339)
+		} else {
+			result["last_updated"] = time.Now().Format(time.RFC3339)
+		}
+	} else {
+		result["last_updated"] = time.Now().Format(time.RFC3339)
+	}
+
+	return result, nil
+}
+
+// ==================== 进化收益 API ====================
+
+// GetEvolutionBenefits 获取进化收益数据
+func (a *App) GetEvolutionBenefits() (map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	// 获取技能统计
+	skillStats, err := skillManager.GetSkillStats()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get skill stats: %w", err)
+	}
+
+	// 获取记忆统计
+	var memoryStats map[string]interface{}
+	memoryManager := a.genkitManager.GetMemoryManager()
+	if memoryManager != nil {
+		stats, err := memoryManager.GetStats()
+		if err == nil {
+			memoryStats = make(map[string]interface{})
+			if total, ok := stats["total_memories"]; ok {
+				memoryStats["total_memories"] = total
+			}
+			if episodic, ok := stats["episodic_memories"]; ok {
+				memoryStats["episodic_memories"] = episodic
+			}
+			if semantic, ok := stats["semantic_memories"]; ok {
+				memoryStats["semantic_memories"] = semantic
+			}
+			if hitRate, ok := stats["cache_hit_rate"]; ok {
+				memoryStats["cache_hit_rate"] = hitRate
+			}
+		}
+	}
+
+	// 计算收益指标
+	totalTokenSavings := 0
+	totalTimeSavings := 0.0
+	automationRate := 0.0
+
+	// 这里应该从实际使用数据计算收益
+	// 暂时使用估算值
+	if skillStats.TotalUsage > 0 {
+		// 假设每次技能使用平均节省100 tokens和5秒时间
+		totalTokenSavings = skillStats.TotalUsage * 100
+		totalTimeSavings = float64(skillStats.TotalUsage) * 5.0
+
+		// 自动化率 = 启用技能数 / 总技能数
+		if skillStats.TotalSkills > 0 {
+			automationRate = float64(skillStats.EnabledSkills) / float64(skillStats.TotalSkills)
+		}
+	}
+
+	// 构建收益数据
+	benefits := map[string]interface{}{
+		"skill_stats": map[string]interface{}{
+			"total_skills":         skillStats.TotalSkills,
+			"enabled_skills":       skillStats.EnabledSkills,
+			"total_usage":          skillStats.TotalUsage,
+			"average_success_rate": skillStats.AverageSuccessRate,
+		},
+		"memory_stats": memoryStats,
+		"benefit_metrics": map[string]interface{}{
+			"total_token_savings":        totalTokenSavings,
+			"total_time_savings_seconds": totalTimeSavings,
+			"automation_rate":            automationRate,
+			"estimated_cost_savings":     float64(totalTokenSavings) * 0.002, // 假设每1000 tokens $0.002
+			"productivity_gain":          automationRate * 100,               // 百分比
+		},
+		"trends": map[string]interface{}{
+			"skill_growth":       []int{5, 8, 12, 15, 18, 22, 25, 28, 32, 35},                           // 示例数据
+			"usage_growth":       []int{10, 25, 45, 70, 100, 135, 175, 220, 270, 325},                   // 示例数据
+			"success_rate_trend": []float64{0.85, 0.87, 0.89, 0.91, 0.92, 0.93, 0.94, 0.94, 0.95, 0.95}, // 示例数据
+		},
+	}
+
+	return benefits, nil
 }

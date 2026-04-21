@@ -3,24 +3,29 @@ package genkit
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"GenPulse/internal/agents"
 	"GenPulse/internal/genkit/config"
 	"GenPulse/internal/genkit/flows"
 	"GenPulse/internal/genkit/models"
 	"GenPulse/internal/genkit/tools"
+	"GenPulse/internal/memory"
+	"GenPulse/internal/skills"
 	"GenPulse/internal/utils"
 )
 
 // GenkitManager 管理Genkit运行时
 type GenkitManager struct {
-	ctx          context.Context
-	config       *config.AppConfig
-	initialized  bool
-	modelAdapter *models.UnifiedModelAdapter
-	toolRegistry *tools.ToolRegistry
-	flowEngine   *flows.FlowEngine
-	agentManager *agents.AgentManager
+	ctx           context.Context
+	config        *config.AppConfig
+	initialized   bool
+	modelAdapter  *models.UnifiedModelAdapter
+	toolRegistry  *tools.ToolRegistry
+	flowEngine    *flows.FlowEngine
+	agentManager  *agents.AgentManager
+	skillManager  *skills.SkillManager
+	memoryManager *memory.SearchEngine
 	// genkit     interface{} // 暂时用interface{}，等确定具体类型后替换
 }
 
@@ -72,6 +77,16 @@ func (gm *GenkitManager) Initialize(ctx context.Context) error {
 	// 初始化Agent管理器
 	if err := gm.initAgentManager(); err != nil {
 		return fmt.Errorf("failed to initialize agent manager: %w", err)
+	}
+
+	// 初始化技能管理器
+	if err := gm.initSkillManager(); err != nil {
+		return fmt.Errorf("failed to initialize skill manager: %w", err)
+	}
+
+	// 初始化记忆管理器
+	if err := gm.initMemoryManager(); err != nil {
+		return fmt.Errorf("failed to initialize memory manager: %w", err)
 	}
 
 	gm.initialized = true
@@ -328,6 +343,16 @@ func (gm *GenkitManager) GetAgentManager() *agents.AgentManager {
 	return gm.agentManager
 }
 
+// GetSkillManager 获取技能管理器
+func (gm *GenkitManager) GetSkillManager() *skills.SkillManager {
+	return gm.skillManager
+}
+
+// GetMemoryManager 获取记忆管理器
+func (gm *GenkitManager) GetMemoryManager() *memory.SearchEngine {
+	return gm.memoryManager
+}
+
 // IsInitialized 检查是否已初始化
 func (gm *GenkitManager) IsInitialized() bool {
 	return gm.initialized
@@ -361,6 +386,8 @@ func (gm *GenkitManager) Shutdown() error {
 	gm.toolRegistry = nil
 	gm.flowEngine = nil
 	gm.agentManager = nil
+	gm.skillManager = nil
+	gm.memoryManager = nil
 
 	gm.initialized = false
 	utils.Info("Genkit运行时已关闭")
@@ -390,4 +417,61 @@ func GetGlobalGenkit() interface{} {
 		return nil
 	}
 	return globalGenkitManager.GetGenkit()
+}
+
+// initSkillManager 初始化技能管理器
+func (gm *GenkitManager) initSkillManager() error {
+	utils.Info("初始化技能管理器...")
+
+	// 获取技能目录路径
+	skillsDir := "./data/skills"
+
+	// 创建LLM客户端包装器
+	var llmClient skills.LLMClient
+	if gm.modelAdapter != nil {
+		// 使用默认模型ID
+		modelID := "gemini-1.5-flash" // 默认模型
+		llmClient = skills.NewModelAdapterWrapper(gm.modelAdapter, modelID)
+	} else {
+		utils.Warn("模型适配器未初始化，使用模拟LLM客户端")
+		// 使用模拟客户端
+		llmClient = skills.NewLLMClientWrapper(nil)
+	}
+
+	// 创建技能管理器
+	skillManager, err := skills.NewSkillManager(skillsDir, llmClient)
+	if err != nil {
+		return fmt.Errorf("failed to create skill manager: %w", err)
+	}
+
+	gm.skillManager = skillManager
+	utils.Info("技能管理器初始化完成")
+	return nil
+}
+
+// initMemoryManager 初始化记忆管理器
+func (gm *GenkitManager) initMemoryManager() error {
+	utils.Info("初始化记忆管理器...")
+
+	// 获取记忆数据库路径
+	dbPath := "./data/memory.db"
+
+	// 创建记忆组件
+	workingMemory := memory.NewWorkingMemoryManager(100, 24*time.Hour)
+	episodicMemory, err := memory.NewEpisodicMemory(dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to create episodic memory: %w", err)
+	}
+
+	semanticMemory, err := memory.NewSemanticMemory(dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to create semantic memory: %w", err)
+	}
+
+	// 创建记忆检索引擎
+	memoryManager := memory.NewSearchEngine(workingMemory, episodicMemory, semanticMemory)
+
+	gm.memoryManager = memoryManager
+	utils.Info("记忆管理器初始化完成")
+	return nil
 }

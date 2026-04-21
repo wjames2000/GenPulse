@@ -205,6 +205,11 @@ type BaseAgent struct {
 
 // NewBaseAgent 创建基础Agent
 func NewBaseAgent(config AgentConfig, modelAdapter *models.UnifiedModelAdapter, toolRegistry *tools.ToolRegistry, flowEngine *flows.FlowEngine) (*BaseAgent, error) {
+	return NewBaseAgentWithEnhancer(config, modelAdapter, toolRegistry, flowEngine, nil)
+}
+
+// NewBaseAgentWithEnhancer 创建带提示词增强器的基础Agent
+func NewBaseAgentWithEnhancer(config AgentConfig, modelAdapter *models.UnifiedModelAdapter, toolRegistry *tools.ToolRegistry, flowEngine *flows.FlowEngine, promptEnhancer interface{}) (*BaseAgent, error) {
 	if config.ID == "" {
 		return nil, NewAgentError(ErrInvalidConfig, "Agent配置无效", "Agent ID不能为空")
 	}
@@ -294,6 +299,9 @@ func (a *BaseAgent) Execute(ctx context.Context, task string, parameters map[str
 		Success:  true,
 		Output:   "Task executed (base implementation)",
 		Duration: 0,
+		Metadata: map[string]interface{}{
+			"original_task": task,
+		},
 	}
 
 	a.execution.CompletedAt = &time.Time{}
@@ -483,6 +491,16 @@ func (a *BaseAgent) RemoveCapability(capability AgentCapability) {
 		}
 	}
 	a.config.Capabilities = newCapabilities
+}
+
+// SetPromptEnhancer 设置提示词增强器（占位符）
+func (a *BaseAgent) SetPromptEnhancer(enhancer interface{}) {
+	// 简化实现：暂时跳过
+}
+
+// GetPromptEnhancer 获取提示词增强器（占位符）
+func (a *BaseAgent) GetPromptEnhancer() interface{} {
+	return nil
 }
 
 // ExecuteTool 执行工具
