@@ -126,6 +126,66 @@ export interface EvolutionBenefits {
   };
 }
 
+// ==================== MCP 配置接口 ====================
+
+export interface MCPClientConfig {
+  server_type: string;
+  command: string;
+  args: string[];
+  namespace: string;
+  timeout: number;
+}
+
+export interface MCPServerConfig {
+  type: string;
+  tool_filter?: string;
+}
+
+export interface MCPServer {
+  id: string;
+  name: string;
+  type: 'client' | 'server';
+  enabled: boolean;
+  priority: number;
+  client_config?: MCPClientConfig;
+  server_config?: MCPServerConfig;
+}
+
+export interface MCPConfig {
+  auto_start: boolean;
+  tool_discovery_interval: number;
+  max_concurrent_calls: number;
+  servers: MCPServer[];
+}
+
+export interface MCPServerStatus {
+  id: string;
+  name: string;
+  type: 'client' | 'server';
+  enabled: boolean;
+  connected: boolean;
+  last_error?: string;
+  tool_count: number;
+  last_update: string;
+}
+
+export interface MCPTool {
+  name: string;
+  description: string;
+  server_id: string;
+  server_name: string;
+  namespace: string;
+  input_schema: {
+    type: string;
+    properties: Record<string, any>;
+  };
+}
+
+export interface MCPConnectionTestResult {
+  success: boolean;
+  error?: string;
+}
+
 class ApiService {
   async getAppInfo() {
     try {
@@ -650,6 +710,256 @@ class ApiService {
         success_rate_trend: [0.85, 0.87, 0.89, 0.91, 0.92, 0.93, 0.94, 0.94, 0.95, 0.95],
       },
     };
+  }
+
+  // ==================== MCP 配置管理 API ====================
+
+  async getMCPConfig(): Promise<MCPConfig> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      // 暂时返回模拟数据
+      return this.getMockMCPConfig();
+    } catch (error) {
+      console.error('Failed to get MCP config:', error);
+      return this.getMockMCPConfig();
+    }
+  }
+
+  async updateMCPConfig(config: MCPConfig): Promise<boolean> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      console.log('Updating MCP config:', config);
+      return true;
+    } catch (error) {
+      console.error('Failed to update MCP config:', error);
+      return false;
+    }
+  }
+
+  async addMCPServer(server: MCPServer): Promise<MCPServer> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      console.log('Adding MCP server:', server);
+      return server;
+    } catch (error) {
+      console.error('Failed to add MCP server:', error);
+      throw error;
+    }
+  }
+
+  async removeMCPServer(serverId: string): Promise<boolean> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      console.log('Removing MCP server:', serverId);
+      return true;
+    } catch (error) {
+      console.error('Failed to remove MCP server:', error);
+      return false;
+    }
+  }
+
+  async updateMCPServer(serverId: string, server: MCPServer): Promise<boolean> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      console.log('Updating MCP server:', serverId, server);
+      return true;
+    } catch (error) {
+      console.error('Failed to update MCP server:', error);
+      return false;
+    }
+  }
+
+  async getMCPServerStatus(serverId: string): Promise<MCPServerStatus> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      return this.getMockMCPServerStatus(serverId);
+    } catch (error) {
+      console.error('Failed to get MCP server status:', error);
+      return this.getMockMCPServerStatus(serverId);
+    }
+  }
+
+  async getMCPTools(): Promise<MCPTool[]> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      return this.getMockMCPTools();
+    } catch (error) {
+      console.error('Failed to get MCP tools:', error);
+      return this.getMockMCPTools();
+    }
+  }
+
+  async testMCPServerConnection(serverId: string): Promise<MCPConnectionTestResult> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      console.log('Testing MCP server connection:', serverId);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to test MCP server connection:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  // ==================== MCP 模拟数据 ====================
+
+  private getMockMCPConfig(): MCPConfig {
+    return {
+      auto_start: true,
+      tool_discovery_interval: 60,
+      max_concurrent_calls: 10,
+      servers: [
+        {
+          id: 'local-fs-tools',
+          name: '本地文件系统工具',
+          type: 'server',
+          enabled: true,
+          priority: 100,
+          server_config: {
+            type: 'stdio',
+            tool_filter: '',
+          },
+        },
+        {
+          id: 'local-git-tools',
+          name: '本地Git工具',
+          type: 'server',
+          enabled: true,
+          priority: 90,
+          server_config: {
+            type: 'stdio',
+            tool_filter: '',
+          },
+        },
+        {
+          id: 'weather-api',
+          name: '天气API',
+          type: 'client',
+          enabled: true,
+          priority: 80,
+          client_config: {
+            server_type: 'stdio',
+            command: 'npx',
+            args: ['@modelcontextprotocol/server-weather'],
+            namespace: 'weather',
+            timeout: 30,
+          },
+        },
+        {
+          id: 'filesystem-browser',
+          name: '文件系统浏览器',
+          type: 'client',
+          enabled: true,
+          priority: 70,
+          client_config: {
+            server_type: 'stdio',
+            command: 'npx',
+            args: ['@modelcontextprotocol/server-filesystem'],
+            namespace: 'fs',
+            timeout: 30,
+          },
+        },
+      ],
+    };
+  }
+
+  private getMockMCPServerStatus(serverId: string): MCPServerStatus {
+    const now = new Date();
+    const servers = this.getMockMCPConfig().servers;
+    const server = servers.find(s => s.id === serverId) || servers[0];
+
+    return {
+      id: server.id,
+      name: server.name,
+      type: server.type,
+      enabled: server.enabled,
+      connected: true,
+      last_error: '',
+      tool_count: server.type === 'client' ? 5 : 8,
+      last_update: now.toISOString(),
+    };
+  }
+
+  private getMockMCPTools(): MCPTool[] {
+    return [
+      {
+        name: 'read_file',
+        description: '读取文件内容',
+        server_id: 'local-fs-tools',
+        server_name: '本地文件系统工具',
+        namespace: 'fs',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description: '文件路径',
+            },
+          },
+        },
+      },
+      {
+        name: 'write_file',
+        description: '写入文件内容',
+        server_id: 'local-fs-tools',
+        server_name: '本地文件系统工具',
+        namespace: 'fs',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description: '文件路径',
+            },
+            content: {
+              type: 'string',
+              description: '文件内容',
+            },
+          },
+        },
+      },
+      {
+        name: 'get_current_weather',
+        description: '获取当前天气',
+        server_id: 'weather-api',
+        server_name: '天气API',
+        namespace: 'weather',
+        input_schema: {
+          type: 'object',
+          properties: {
+            location: {
+              type: 'string',
+              description: '地理位置',
+            },
+            unit: {
+              type: 'string',
+              description: '温度单位 (celsius/fahrenheit)',
+              enum: ['celsius', 'fahrenheit'],
+            },
+          },
+        },
+      },
+      {
+        name: 'list_files',
+        description: '列出目录中的文件',
+        server_id: 'filesystem-browser',
+        server_name: '文件系统浏览器',
+        namespace: 'fs',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description: '目录路径',
+            },
+            recursive: {
+              type: 'boolean',
+              description: '是否递归',
+              default: false,
+            },
+          },
+        },
+      },
+    ];
   }
 }
 

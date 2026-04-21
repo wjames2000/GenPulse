@@ -40,6 +40,7 @@ import NeuralAssetsView from './components/NeuralAssetsView';
 import KanbanView from './components/KanbanView';
 import SkillsView from './components/SkillsView';
 import DiffView from './components/DiffView';
+import MCPConfigView from './components/MCPConfigView';
 import { api } from './services/api';
 
 export default function App() {
@@ -83,6 +84,7 @@ export default function App() {
     { id: 'skills' as View, icon: Code2, label: '技能库' },
     { id: 'history' as View, icon: History, label: '开发历史' },
     { id: 'settings' as View, icon: Settings, label: '系统设置' },
+    { id: 'mcp-config' as View, icon: TerminalIcon, label: 'MCP 配置' },
   ];
 
   return (
@@ -266,13 +268,14 @@ export default function App() {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="h-full"
             >
-              {currentView === 'dashboard' && <DashboardView />}
+               {currentView === 'dashboard' && <DashboardView />}
               {currentView === 'pipeline' && <InitializeView />}
               {currentView === 'settings' && <SettingsView />}
               {currentView === 'neural' && <NeuralAssetsView />}
               {currentView === 'kanban' && <KanbanView />}
               {currentView === 'history' && <DiffView />}
               {currentView === 'skills' && <SkillsView />}
+              {currentView === 'mcp-config' && <MCPConfigView />}
             </motion.div>
           </AnimatePresence>
         </main>

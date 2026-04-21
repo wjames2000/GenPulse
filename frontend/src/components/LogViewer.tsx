@@ -239,9 +239,6 @@ export default function LogViewer({
   // 复制日志到剪贴板
   const copyLogToClipboard = (log: LogEntry) => {
     const logText = `[${log.timestamp}] [${log.level.toUpperCase()}] ${log.message}`;
-    if (log.details) {
-      logText += `\n详情: ${JSON.stringify(log.details, null, 2)}`;
-    }
     navigator.clipboard.writeText(logText);
   };
 

@@ -1,4 +1,4 @@
-export type View = 'dashboard' | 'pipeline' | 'history' | 'neural' | 'settings' | 'kanban' | 'skills' | 'diff';
+export type View = 'dashboard' | 'pipeline' | 'history' | 'neural' | 'settings' | 'kanban' | 'skills' | 'diff' | 'mcp-config';
 
 export interface Agent {
   id: string;

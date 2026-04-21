@@ -6,10 +6,13 @@ import (
 	"time"
 
 	"GenPulse/internal/agents"
-	"GenPulse/internal/genkit/config"
+	genkitconfig "GenPulse/internal/genkit/config"
 	"GenPulse/internal/genkit/flows"
 	"GenPulse/internal/genkit/models"
 	"GenPulse/internal/genkit/tools"
+	mcpconfig "GenPulse/internal/mcp/config"
+	"GenPulse/internal/mcp/discovery"
+	"GenPulse/internal/mcp/host"
 	"GenPulse/internal/memory"
 	"GenPulse/internal/skills"
 	"GenPulse/internal/utils"
@@ -18,7 +21,7 @@ import (
 // GenkitManager 管理Genkit运行时
 type GenkitManager struct {
 	ctx           context.Context
-	config        *config.AppConfig
+	config        *genkitconfig.AppConfig
 	initialized   bool
 	modelAdapter  *models.UnifiedModelAdapter
 	toolRegistry  *tools.ToolRegistry
@@ -26,6 +29,9 @@ type GenkitManager struct {
 	agentManager  *agents.AgentManager
 	skillManager  *skills.SkillManager
 	memoryManager *memory.SearchEngine
+	mcpHost       *host.MCPHost
+	mcpConfig     *mcpconfig.MCPConfigManager
+	toolDiscovery *discovery.ToolDiscovery
 	// genkit     interface{} // 暂时用interface{}，等确定具体类型后替换
 }
 
@@ -45,7 +51,7 @@ func (gm *GenkitManager) Initialize(ctx context.Context) error {
 	gm.ctx = ctx
 
 	// 获取配置
-	cfg := config.GetConfig()
+	cfg := genkitconfig.GetConfig()
 	gm.config = cfg
 
 	utils.Info("初始化Genkit运行时...")
@@ -89,6 +95,12 @@ func (gm *GenkitManager) Initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize memory manager: %w", err)
 	}
 
+	// 初始化MCP功能
+	if err := gm.initMCP(); err != nil {
+		utils.Warn("MCP初始化失败: %v，继续运行", err)
+		// MCP不是核心功能，允许失败
+	}
+
 	gm.initialized = true
 	utils.Info("Genkit运行时初始化完成")
 
@@ -104,7 +116,7 @@ func (gm *GenkitManager) configureModelProviders() error {
 
 	// 检查是否有API密钥配置
 	// 注意：这里需要从配置管理器获取，而不是直接访问config
-	configMgr := config.GetGlobalConfig()
+	configMgr := genkitconfig.GetGlobalConfig()
 	if configMgr == nil {
 		utils.Warn("配置管理器未初始化，跳过模型提供商配置")
 		return nil
@@ -381,6 +393,20 @@ func (gm *GenkitManager) Shutdown() error {
 	// 关闭工具注册表（如果有关闭方法）
 	// 注意：toolRegistry目前没有Shutdown方法
 
+	// 关闭工具发现服务
+	if gm.toolDiscovery != nil {
+		if err := gm.toolDiscovery.Stop(); err != nil {
+			utils.Warn("关闭工具发现服务失败: %v", err)
+		}
+	}
+
+	// 关闭MCP主机
+	if gm.mcpHost != nil {
+		if err := gm.mcpHost.Stop(); err != nil {
+			utils.Warn("关闭MCP主机失败: %v", err)
+		}
+	}
+
 	// 清理资源
 	gm.modelAdapter = nil
 	gm.toolRegistry = nil
@@ -388,6 +414,9 @@ func (gm *GenkitManager) Shutdown() error {
 	gm.agentManager = nil
 	gm.skillManager = nil
 	gm.memoryManager = nil
+	gm.mcpHost = nil
+	gm.mcpConfig = nil
+	gm.toolDiscovery = nil
 
 	gm.initialized = false
 	utils.Info("Genkit运行时已关闭")
@@ -474,4 +503,67 @@ func (gm *GenkitManager) initMemoryManager() error {
 	gm.memoryManager = memoryManager
 	utils.Info("记忆管理器初始化完成")
 	return nil
+}
+
+// initMCP 初始化MCP功能
+func (gm *GenkitManager) initMCP() error {
+	utils.Info("初始化MCP功能...")
+
+	// 初始化MCP配置管理器
+	mcpConfigPath := "./data/mcp_config.json"
+	mcpConfigManager, err := mcpconfig.NewMCPConfigManager(mcpConfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to create MCP config manager: %w", err)
+	}
+	gm.mcpConfig = mcpConfigManager
+
+	// 获取MCP配置
+	mcpConfig := mcpConfigManager.GetConfig()
+
+	// 创建MCP主机
+	mcpHost := host.NewMCPHost(mcpConfig)
+	gm.mcpHost = mcpHost
+
+	// 启动MCP主机
+	if mcpConfig.AutoStart {
+		if err := mcpHost.Start(gm.ctx); err != nil {
+			utils.Warn("启动MCP主机失败: %v", err)
+		} else {
+			utils.Info("MCP主机已启动")
+		}
+	}
+
+	// 初始化工具发现服务
+	if gm.toolRegistry != nil {
+		toolDiscovery := discovery.NewToolDiscovery(mcpHost, gm.toolRegistry)
+		gm.toolDiscovery = toolDiscovery
+
+		// 设置全局工具发现实例
+		discovery.SetGlobalToolDiscovery(toolDiscovery)
+
+		// 启动工具发现服务
+		if err := toolDiscovery.Start(gm.ctx); err != nil {
+			utils.Warn("启动工具发现服务失败: %v", err)
+		} else {
+			utils.Info("工具发现服务已启动")
+		}
+	}
+
+	utils.Info("MCP功能初始化完成")
+	return nil
+}
+
+// GetMCPHost 获取MCP主机
+func (gm *GenkitManager) GetMCPHost() *host.MCPHost {
+	return gm.mcpHost
+}
+
+// GetMCPConfig 获取MCP配置管理器
+func (gm *GenkitManager) GetMCPConfig() *mcpconfig.MCPConfigManager {
+	return gm.mcpConfig
+}
+
+// GetToolDiscovery 获取工具发现服务
+func (gm *GenkitManager) GetToolDiscovery() *discovery.ToolDiscovery {
+	return gm.toolDiscovery
 }
