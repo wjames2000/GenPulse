@@ -1,11 +1,14 @@
 package main
 
 import (
+	"GenPulse/internal/utils"
 	"context"
 	"fmt"
 	"time"
 
 	"GenPulse/internal/genkit"
+	"GenPulse/internal/mcp/client"
+	"GenPulse/internal/mcp/host"
 	"GenPulse/internal/services"
 )
 
@@ -963,4 +966,456 @@ func (a *App) GetEvolutionBenefits() (map[string]interface{}, error) {
 	}
 
 	return benefits, nil
+}
+
+// ==================== MCP 配置管理 API ====================
+
+// GetMCPConfig 获取MCP配置
+func (a *App) GetMCPConfig() (map[string]interface{}, error) {
+	// 从Genkit管理器获取MCP主机
+	genkitManager := a.genkitManager
+	if genkitManager == nil {
+		return nil, fmt.Errorf("genkit manager not initialized")
+	}
+
+	// 获取MCP主机
+	mcpHost := genkitManager.GetMCPHost()
+	if mcpHost == nil {
+		// 返回默认配置
+		return map[string]interface{}{
+			"auto_start":              true,
+			"tool_discovery_interval": 60,
+			"max_concurrent_calls":    10,
+			"servers":                 []map[string]interface{}{},
+		}, nil
+	}
+
+	// 获取配置
+	config := mcpHost.GetConfig()
+
+	// 转换为前端格式
+	servers := make([]map[string]interface{}, len(config.Servers))
+	for i, server := range config.Servers {
+		serverMap := map[string]interface{}{
+			"id":       server.ID,
+			"name":     server.Name,
+			"type":     server.Type,
+			"enabled":  server.Enabled,
+			"priority": server.Priority,
+		}
+
+		// 根据类型添加配置
+		if server.Type == "client" {
+			serverMap["client_config"] = map[string]interface{}{
+				"server_type": server.ClientConfig.ServerType,
+				"command":     server.ClientConfig.Command,
+				"args":        server.ClientConfig.Args,
+				"namespace":   server.ClientConfig.Namespace,
+				"timeout":     server.ClientConfig.Timeout,
+			}
+		} else if server.Type == "server" {
+			serverMap["server_config"] = map[string]interface{}{
+				"type":        server.ServerConfig.Type,
+				"tool_filter": server.ServerConfig.ToolFilter,
+			}
+		}
+
+		servers[i] = serverMap
+	}
+
+	return map[string]interface{}{
+		"auto_start":              config.AutoStart,
+		"tool_discovery_interval": config.ToolDiscoveryInterval,
+		"max_concurrent_calls":    config.MaxConcurrentCalls,
+		"servers":                 servers,
+	}, nil
+}
+
+// UpdateMCPConfig 更新MCP配置
+func (a *App) UpdateMCPConfig(config map[string]interface{}) error {
+	genkitManager := a.genkitManager
+	if genkitManager == nil {
+		return fmt.Errorf("genkit manager not initialized")
+	}
+
+	mcpHost := genkitManager.GetMCPHost()
+	if mcpHost == nil {
+		return fmt.Errorf("MCP host not initialized")
+	}
+
+	// 获取配置管理器
+	mcpConfigManager := genkitManager.GetMCPConfig()
+	if mcpConfigManager == nil {
+		return fmt.Errorf("MCP config manager not initialized")
+	}
+
+	// 解析配置
+	var autoStart bool
+	if val, ok := config["auto_start"]; ok {
+		autoStart, _ = val.(bool)
+	}
+
+	var toolDiscoveryInterval int
+	if val, ok := config["tool_discovery_interval"]; ok {
+		if f, ok := val.(float64); ok {
+			toolDiscoveryInterval = int(f)
+		}
+	}
+
+	var maxConcurrentCalls int
+	if val, ok := config["max_concurrent_calls"]; ok {
+		if f, ok := val.(float64); ok {
+			maxConcurrentCalls = int(f)
+		}
+	}
+
+	// 解析服务器列表
+	var servers []interface{}
+	if val, ok := config["servers"]; ok {
+		if s, ok := val.([]interface{}); ok {
+			servers = s
+		}
+	}
+
+	// 转换为MCP主机配置
+	hostConfig := host.MCPHostConfig{
+		AutoStart:             autoStart,
+		ToolDiscoveryInterval: toolDiscoveryInterval,
+		MaxConcurrentCalls:    maxConcurrentCalls,
+		Servers:               []host.MCPHostServerConfig{},
+	}
+
+	// 解析服务器配置
+	for _, serverData := range servers {
+		if serverMap, ok := serverData.(map[string]interface{}); ok {
+			serverID, _ := serverMap["id"].(string)
+			serverName, _ := serverMap["name"].(string)
+			serverType, _ := serverMap["type"].(string)
+			enabled, _ := serverMap["enabled"].(bool)
+			priority, _ := serverMap["priority"].(float64)
+
+			serverConfig := host.MCPHostServerConfig{
+				ID:       serverID,
+				Name:     serverName,
+				Type:     serverType,
+				Enabled:  enabled,
+				Priority: int(priority),
+			}
+
+			// 根据类型解析配置
+			if serverType == "client" {
+				if clientConfigMap, ok := serverMap["client_config"].(map[string]interface{}); ok {
+					serverConfig.ClientConfig = client.MCPClientConfig{
+						ServerType: clientConfigMap["server_type"].(string),
+						Command:    clientConfigMap["command"].(string),
+						Namespace:  clientConfigMap["namespace"].(string),
+						Timeout:    int(clientConfigMap["timeout"].(float64)),
+					}
+
+					// 解析参数数组
+					if argsInterface, ok := clientConfigMap["args"]; ok {
+						if argsArray, ok := argsInterface.([]interface{}); ok {
+							args := make([]string, len(argsArray))
+							for i, arg := range argsArray {
+								args[i] = arg.(string)
+							}
+							serverConfig.ClientConfig.Args = args
+						}
+					}
+				}
+			} else if serverType == "server" {
+				if serverConfigMap, ok := serverMap["server_config"].(map[string]interface{}); ok {
+					serverConfig.ServerConfig = host.MCPServerConfig{
+						Type:       serverConfigMap["type"].(string),
+						ToolFilter: serverConfigMap["tool_filter"].(string),
+					}
+				}
+			}
+
+			hostConfig.Servers = append(hostConfig.Servers, serverConfig)
+		}
+	}
+
+	// 更新配置并保存到文件
+	return mcpHost.UpdateConfigWithCallback(hostConfig, func(cfg host.MCPHostConfig) error {
+		return mcpConfigManager.UpdateConfig(cfg)
+	})
+}
+
+// AddMCPServer 添加MCP服务器
+func (a *App) AddMCPServer(serverConfig map[string]interface{}) (map[string]interface{}, error) {
+	ctx := context.Background()
+	genkitManager := a.genkitManager
+	if genkitManager == nil {
+		return nil, fmt.Errorf("genkit manager not initialized")
+	}
+
+	mcpHost := genkitManager.GetMCPHost()
+	if mcpHost == nil {
+		return nil, fmt.Errorf("MCP host not initialized")
+	}
+
+	// 解析服务器配置
+	serverID, _ := serverConfig["id"].(string)
+	serverName, _ := serverConfig["name"].(string)
+	serverType, _ := serverConfig["type"].(string)
+	enabled, _ := serverConfig["enabled"].(bool)
+	priority, _ := serverConfig["priority"].(float64)
+
+	hostServerConfig := host.MCPHostServerConfig{
+		ID:       serverID,
+		Name:     serverName,
+		Type:     serverType,
+		Enabled:  enabled,
+		Priority: int(priority),
+	}
+
+	// 根据类型解析配置
+	if serverType == "client" {
+		if clientConfigMap, ok := serverConfig["client_config"].(map[string]interface{}); ok {
+			hostServerConfig.ClientConfig = client.MCPClientConfig{
+				ServerType: clientConfigMap["server_type"].(string),
+				Command:    clientConfigMap["command"].(string),
+				Namespace:  clientConfigMap["namespace"].(string),
+				Timeout:    int(clientConfigMap["timeout"].(float64)),
+			}
+
+			// 解析参数数组
+			if argsInterface, ok := clientConfigMap["args"]; ok {
+				if argsArray, ok := argsInterface.([]interface{}); ok {
+					args := make([]string, len(argsArray))
+					for i, arg := range argsArray {
+						args[i] = arg.(string)
+					}
+					hostServerConfig.ClientConfig.Args = args
+				}
+			}
+		}
+	} else if serverType == "server" {
+		if serverConfigMap, ok := serverConfig["server_config"].(map[string]interface{}); ok {
+			hostServerConfig.ServerConfig = host.MCPServerConfig{
+				Type:       serverConfigMap["type"].(string),
+				ToolFilter: serverConfigMap["tool_filter"].(string),
+			}
+		}
+	}
+
+	// 添加服务器
+	if err := mcpHost.AddServer(ctx, hostServerConfig); err != nil {
+		return nil, fmt.Errorf("failed to add server: %w", err)
+	}
+
+	// 更新配置文件
+	if mcpConfigManager := genkitManager.GetMCPConfig(); mcpConfigManager != nil {
+		if err := mcpConfigManager.AddServer(hostServerConfig); err != nil {
+			utils.Warn("Failed to save server config to file: %v", err)
+		}
+	}
+
+	// 返回添加的服务器信息
+	return map[string]interface{}{
+		"id":       hostServerConfig.ID,
+		"name":     hostServerConfig.Name,
+		"type":     hostServerConfig.Type,
+		"enabled":  hostServerConfig.Enabled,
+		"priority": hostServerConfig.Priority,
+	}, nil
+}
+
+// RemoveMCPServer 移除MCP服务器
+func (a *App) RemoveMCPServer(serverID string) error {
+	genkitManager := a.genkitManager
+	if genkitManager == nil {
+		return fmt.Errorf("genkit manager not initialized")
+	}
+
+	mcpHost := genkitManager.GetMCPHost()
+	if mcpHost == nil {
+		return fmt.Errorf("MCP host not initialized")
+	}
+
+	// 从MCP主机移除服务器
+	if err := mcpHost.RemoveServer(serverID); err != nil {
+		return err
+	}
+
+	// 更新配置文件
+	if mcpConfigManager := genkitManager.GetMCPConfig(); mcpConfigManager != nil {
+		if err := mcpConfigManager.RemoveServer(serverID); err != nil {
+			utils.Warn("Failed to remove server config from file: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// UpdateMCPServer 更新MCP服务器
+func (a *App) UpdateMCPServer(serverID string, serverConfig map[string]interface{}) error {
+	genkitManager := a.genkitManager
+	if genkitManager == nil {
+		return fmt.Errorf("genkit manager not initialized")
+	}
+
+	mcpHost := genkitManager.GetMCPHost()
+	if mcpHost == nil {
+		return fmt.Errorf("MCP host not initialized")
+	}
+
+	// 解析服务器配置
+	serverName, _ := serverConfig["name"].(string)
+	serverType, _ := serverConfig["type"].(string)
+	enabled, _ := serverConfig["enabled"].(bool)
+	priority, _ := serverConfig["priority"].(float64)
+
+	hostServerConfig := host.MCPHostServerConfig{
+		ID:       serverID,
+		Name:     serverName,
+		Type:     serverType,
+		Enabled:  enabled,
+		Priority: int(priority),
+	}
+
+	// 根据类型解析配置
+	if serverType == "client" {
+		if clientConfigMap, ok := serverConfig["client_config"].(map[string]interface{}); ok {
+			hostServerConfig.ClientConfig = client.MCPClientConfig{
+				ServerType: clientConfigMap["server_type"].(string),
+				Command:    clientConfigMap["command"].(string),
+				Namespace:  clientConfigMap["namespace"].(string),
+				Timeout:    int(clientConfigMap["timeout"].(float64)),
+			}
+
+			// 解析参数数组
+			if argsInterface, ok := clientConfigMap["args"]; ok {
+				if argsArray, ok := argsInterface.([]interface{}); ok {
+					args := make([]string, len(argsArray))
+					for i, arg := range argsArray {
+						args[i] = arg.(string)
+					}
+					hostServerConfig.ClientConfig.Args = args
+				}
+			}
+		}
+	} else if serverType == "server" {
+		if serverConfigMap, ok := serverConfig["server_config"].(map[string]interface{}); ok {
+			hostServerConfig.ServerConfig = host.MCPServerConfig{
+				Type:       serverConfigMap["type"].(string),
+				ToolFilter: serverConfigMap["tool_filter"].(string),
+			}
+		}
+	}
+
+	// 更新服务器
+	ctx := context.Background()
+	if err := mcpHost.UpdateServer(ctx, serverID, hostServerConfig); err != nil {
+		return fmt.Errorf("failed to update server: %w", err)
+	}
+
+	// 更新配置文件
+	if mcpConfigManager := genkitManager.GetMCPConfig(); mcpConfigManager != nil {
+		if err := mcpConfigManager.UpdateServer(serverID, hostServerConfig); err != nil {
+			utils.Warn("Failed to update server config in file: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// GetMCPServerStatus 获取MCP服务器状态
+func (a *App) GetMCPServerStatus(serverID string) (map[string]interface{}, error) {
+	genkitManager := a.genkitManager
+	if genkitManager == nil {
+		return nil, fmt.Errorf("genkit manager not initialized")
+	}
+
+	mcpHost := genkitManager.GetMCPHost()
+	if mcpHost == nil {
+		return nil, fmt.Errorf("MCP host not initialized")
+	}
+
+	// 获取服务器状态
+	status, err := mcpHost.GetServerStatus(serverID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get server status: %w", err)
+	}
+
+	// 转换为前端格式
+	return map[string]interface{}{
+		"id":          status["id"],
+		"name":        status["name"],
+		"type":        status["type"],
+		"enabled":     status["enabled"],
+		"connected":   status["connected"],
+		"last_error":  status["last_error"],
+		"tool_count":  status["tool_count"],
+		"last_update": status["last_update"],
+	}, nil
+}
+
+// GetMCPTools 获取MCP工具列表
+func (a *App) GetMCPTools() ([]map[string]interface{}, error) {
+	genkitManager := a.genkitManager
+	if genkitManager == nil {
+		return nil, fmt.Errorf("genkit manager not initialized")
+	}
+
+	mcpHost := genkitManager.GetMCPHost()
+	if mcpHost == nil {
+		return nil, fmt.Errorf("MCP host not initialized")
+	}
+
+	// 暂时返回空数组，实际实现需要从MCP客户端获取工具
+	// 这里返回模拟数据用于测试
+	return []map[string]interface{}{
+		{
+			"server_id":   "example-server-1",
+			"name":        "search_web",
+			"namespace":   "web",
+			"description": "搜索网页内容",
+			"input_schema": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"query": map[string]interface{}{
+						"type":        "string",
+						"description": "搜索关键词",
+					},
+				},
+			},
+		},
+		{
+			"server_id":   "example-server-2",
+			"name":        "read_file",
+			"namespace":   "filesystem",
+			"description": "读取文件内容",
+			"input_schema": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path": map[string]interface{}{
+						"type":        "string",
+						"description": "文件路径",
+					},
+				},
+			},
+		},
+	}, nil
+}
+
+// TestMCPServerConnection 测试MCP服务器连接
+func (a *App) TestMCPServerConnection(serverID string) (map[string]interface{}, error) {
+	genkitManager := a.genkitManager
+	if genkitManager == nil {
+		return nil, fmt.Errorf("genkit manager not initialized")
+	}
+
+	mcpHost := genkitManager.GetMCPHost()
+	if mcpHost == nil {
+		return nil, fmt.Errorf("MCP host not initialized")
+	}
+
+	// 模拟连接测试
+	// 实际实现需要调用MCP客户端的连接测试方法
+	return map[string]interface{}{
+		"success": true,
+		"message": "连接测试成功（模拟）",
+	}, nil
 }

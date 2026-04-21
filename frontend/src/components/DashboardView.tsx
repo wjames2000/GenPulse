@@ -536,8 +536,6 @@ function AgentCard({ agent }: AgentCardProps) {
     switch (status) {
       case 'active': return 'text-primary';
       case 'waiting': return 'text-yellow-500';
-      case 'completed': return 'text-green-500';
-      case 'error': return 'text-red-500';
       default: return 'text-white/40';
     }
   };
@@ -573,8 +571,6 @@ function AgentCard({ agent }: AgentCardProps) {
           "w-3 h-3 rounded-none rotate-45 border transition-all",
           agent.status === 'active' ? "bg-primary border-primary shadow-[0_0_15px_#FBDF24]" : 
           agent.status === 'waiting' ? "bg-yellow-500 border-yellow-500" :
-          agent.status === 'completed' ? "bg-green-500 border-green-500" :
-          agent.status === 'error' ? "bg-red-500 border-red-500" :
           "border-white/20"
         )} />
       </div>
@@ -586,8 +582,6 @@ function AgentCard({ agent }: AgentCardProps) {
               "transition-colors",
               agent.status === 'active' ? "text-primary" : 
               agent.status === 'waiting' ? "text-yellow-500" :
-              agent.status === 'completed' ? "text-green-500" :
-              agent.status === 'error' ? "text-red-500" :
               "text-white/40"
             )} />
             <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">{agent.role}</span>
@@ -632,8 +626,6 @@ function AgentCard({ agent }: AgentCardProps) {
               "h-full transition-all",
               agent.status === 'active' ? "bg-primary" : 
               agent.status === 'waiting' ? "bg-yellow-500" :
-              agent.status === 'completed' ? "bg-green-500" :
-              agent.status === 'error' ? "bg-red-500" :
               "bg-white/20"
             )}
           />

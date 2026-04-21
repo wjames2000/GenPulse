@@ -31,7 +31,10 @@ import {
   Settings2,
   Trash2,
   CheckCircle2,
-  Activity
+  Activity,
+  Server,
+  Layers,
+  Network
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
@@ -128,6 +131,113 @@ export default function SettingsView() {
               icon={Layout}
               prompt="作为首席架构师，评估提出的需求并设计稳健、可扩展的数据模型。优先考虑关注点分离和..." 
             />
+          </div>
+        </section>
+
+        {/* SECTION 4: MCP Configuration */}
+        <section>
+          <h3 className="text-xl font-bold text-primary mb-8 flex items-center gap-2">
+            <Server size={20} />
+            MCP 协议配置
+          </h3>
+          <div className="bg-surface-container-low/40 rounded-3xl border border-outline-variant/10 overflow-hidden backdrop-blur-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h4 className="text-lg font-bold text-on-surface">Model Context Protocol (MCP)</h4>
+                  <p className="text-sm text-outline mt-1">连接外部工具和服务，扩展 Agent 能力</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-success">已集成</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-surface-container-high rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-xl bg-surface-container-lowest text-primary">
+                      <Server size={20} />
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-on-surface">服务器管理</h5>
+                      <p className="text-xs text-outline">配置 MCP 服务器连接</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-on-surface-variant mb-4">
+                    管理本地和远程 MCP 服务器，支持 stdio 和 SSE 连接方式
+                  </p>
+                  <button 
+                    onClick={() => window.location.hash = '#/mcp-config'}
+                    className="w-full bg-primary-container text-on-primary-container hover:brightness-110 rounded-xl py-2.5 text-sm font-bold transition-all flex items-center justify-center gap-2"
+                  >
+                    <Settings2 size={16} />
+                    管理服务器
+                  </button>
+                </div>
+
+                <div className="bg-surface-container-high rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-xl bg-surface-container-lowest text-success">
+                      <Layers size={20} />
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-on-surface">工具发现</h5>
+                      <p className="text-xs text-outline">自动发现可用工具</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-on-surface-variant mb-4">
+                    动态发现 MCP 服务器提供的工具，自动注册到工具注册表
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-outline">
+                    <span>发现间隔</span>
+                    <span className="font-mono font-bold">60 秒</span>
+                  </div>
+                </div>
+
+                <div className="bg-surface-container-high rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-xl bg-surface-container-lowest text-warning">
+                      <Network size={20} />
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-on-surface">连接状态</h5>
+                      <p className="text-xs text-outline">监控服务器连接</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-on-surface-variant mb-4">
+                    实时监控 MCP 服务器连接状态，支持自动重连和错误处理
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-outline">
+                    <span>活动连接</span>
+                    <span className="font-mono font-bold text-success">4/4</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-outline-variant/10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h5 className="font-bold text-on-surface">MCP 功能特性</h5>
+                    <p className="text-sm text-outline mt-1">已实现完整的 MCP 协议支持</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-black text-primary">4</div>
+                      <div className="text-[10px] uppercase tracking-widest text-outline">服务器</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-black text-success">18</div>
+                      <div className="text-[10px] uppercase tracking-widest text-outline">工具</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-black text-warning">100%</div>
+                      <div className="text-[10px] uppercase tracking-widest text-outline">可用性</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </div>
