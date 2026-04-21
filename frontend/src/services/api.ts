@@ -961,6 +961,285 @@ class ApiService {
       },
     ];
   }
+
+  // 监控仪表盘相关方法
+  async getAgentsStatus(): Promise<any[]> {
+    try {
+      // 暂时返回模拟数据，实际应该调用后端API
+      return [
+        {
+          id: "orchestrator-1",
+          name: "编排者",
+          role: "Orchestrator",
+          status: "active",
+          currentTask: "分析项目需求并分配微服务架构任务至各开发节点",
+          progress: 80,
+          timeActive: "14m 23s",
+          type: "orchestrator"
+        },
+        {
+          id: "architect-1",
+          name: "架构师",
+          role: "Architect",
+          status: "active",
+          currentTask: "设计用户认证模块的数据流图与数据库 schema",
+          progress: 45,
+          timeActive: "08m 45s",
+          type: "architect"
+        },
+        {
+          id: "backend-1",
+          name: "后端开发",
+          role: "Backend Dev",
+          status: "waiting",
+          currentTask: "等待架构师输出 schema 定义...",
+          progress: 0,
+          timeActive: "--:--",
+          type: "backend"
+        },
+        {
+          id: "frontend-1",
+          name: "前端开发",
+          role: "Frontend Dev",
+          status: "idle",
+          currentTask: "等待 API 接口定义...",
+          progress: 0,
+          timeActive: "--:--",
+          type: "frontend"
+        }
+      ];
+    } catch (error) {
+      console.error('Failed to get agents status:', error);
+      return [];
+    }
+  }
+
+  async getTimelineEvents(): Promise<any[]> {
+    try {
+      // 暂时返回模拟数据
+      return [
+        { id: "1", agent: "Orchestrator", action: "init_project", time: "T-14m", width: "25%", offset: "2%", isComplete: true },
+        { id: "2", agent: "Orchestrator", action: "analyze_reqs", time: "T-10m", width: "15%", offset: "28%", isComplete: false },
+        { id: "3", agent: "Architect", action: "design_db_schema", time: "T-8m", width: "30%", offset: "28%", isComplete: true },
+        { id: "4", agent: "Architect", action: "auth_flow", time: "T-4m", width: "20%", offset: "60%", isComplete: false },
+      ];
+    } catch (error) {
+      console.error('Failed to get timeline events:', error);
+      return [];
+    }
+  }
+
+  async getThoughts(): Promise<any[]> {
+    try {
+      // 暂时返回模拟数据
+      return [
+        {
+          id: "1",
+          type: "internal",
+          content: "为了确保新旧系统的兼容性，我们需要保留旧的 session_id 映射，同时引入基于 JWT 的无状态验证。",
+          agent: "Architect",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "2",
+          type: "internal",
+          isCode: true,
+          filename: "schema.prisma",
+          code: `model User {
+  id String @id @default(uuid())
+  // legacy_token String?
+  password_hash String
+  refresh_tokens RefreshToken[]
+  createdAt DateTime @default(now())
+}`,
+          agent: "Architect",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "3",
+          type: "formulating",
+          content: "考虑到前端是 React SPA，建议使用 HttpOnly cookie 存储 refresh token，内存存储 access token 以防止 XSS 攻击。正在构建最终架构文档...",
+          agent: "Architect",
+          timestamp: new Date().toISOString()
+        }
+      ];
+    } catch (error) {
+      console.error('Failed to get thoughts:', error);
+      return [];
+    }
+  }
+
+  async getToolLogs(): Promise<any[]> {
+    try {
+      // 暂时返回模拟数据
+      return [
+        {
+          id: "1",
+          toolName: "fs_read",
+          toolType: "fs",
+          agent: "Orchestrator",
+          timestamp: new Date().toISOString(),
+          duration: 120,
+          status: "success",
+          parameters: { path: "/project/config.json" },
+          result: { content: "{}" }
+        },
+        {
+          id: "2",
+          toolName: "git_init",
+          toolType: "git",
+          agent: "Orchestrator",
+          timestamp: new Date().toISOString(),
+          duration: 450,
+          status: "success",
+          parameters: { path: "/project" },
+          result: { initialized: true }
+        }
+      ];
+    } catch (error) {
+      console.error('Failed to get tool logs:', error);
+      return [];
+    }
+  }
+
+  async getTerminalOutput(): Promise<string[]> {
+    try {
+      // 暂时返回模拟数据
+      return [
+        "[10:42:01] INFO: Orchestrator: Spawned new task cluster 'auth_module'",
+        "[10:42:03] INFO: MessageBus: Routed prompt to Architect ID-4A9B",
+        "[10:42:05] DEBUG: Architect: Analyzing legacy codebase for auth dependencies...",
+        "[10:42:12] SUCCESS: Architect: Legacy analysis complete. Found 3 deprecation warnings.",
+        "[10:42:15] DEBUG: Architect: Generating initial schema proposal...",
+        "[10:42:28] SYS: Memory allocation at 64%",
+        "[10:42:35] DEBUG: Architect: Evaluating OAuth2 vs JWT implementation paths..."
+      ];
+    } catch (error) {
+      console.error('Failed to get terminal output:', error);
+      return [];
+    }
+  }
+
+  async getFileDiffs(): Promise<any[]> {
+    try {
+      // 暂时返回模拟数据
+      return [
+        {
+          id: "1",
+          filePath: "src/models/user.go",
+          changeType: "added",
+          agent: "Backend Dev",
+          timestamp: new Date().toISOString(),
+          diff: `+package models
++
+++type User struct {
+++    ID        string    \`json:"id"\`
+++    Email     string    \`json:"email"\`
+++    CreatedAt time.Time \`json:"created_at"\`
+++}`,
+          linesAdded: 7,
+          linesDeleted: 0,
+          size: 256
+        }
+      ];
+    } catch (error) {
+      console.error('Failed to get file diffs:', error);
+      return [];
+    }
+  }
+
+  async getCostMetrics(): Promise<any[]> {
+    try {
+      // 暂时返回模拟数据
+      return [
+        {
+          id: "1",
+          costType: "llm",
+          agent: "Architect",
+          timestamp: new Date().toISOString(),
+          amount: 0.25,
+          tokenCount: 1250,
+          description: "Architecture design generation"
+        },
+        {
+          id: "2",
+          costType: "api",
+          agent: "Orchestrator",
+          timestamp: new Date().toISOString(),
+          amount: 0.05,
+          description: "Git API calls"
+        }
+      ];
+    } catch (error) {
+      console.error('Failed to get cost metrics:', error);
+      return [];
+    }
+  }
+
+  async getEvolutionEvents(): Promise<any[]> {
+    try {
+      // 暂时返回模拟数据
+      return [
+        {
+          id: "1",
+          eventType: "skill_generated",
+          agent: "Architect",
+          timestamp: new Date().toISOString(),
+          description: "Generated skill for JWT authentication implementation",
+          efficiencyGain: 15,
+          tokenSavings: 5000,
+          timeSavings: 30
+        }
+      ];
+    } catch (error) {
+      console.error('Failed to get evolution events:', error);
+      return [];
+    }
+  }
+
+  async getMonitoringStats(): Promise<any> {
+    try {
+      // 暂时返回模拟数据
+      return {
+        activeAgents: 2,
+        totalAgents: 4,
+        successRate: 85,
+        uptime: 99,
+        totalExecutions: 1248,
+        avgResponseTime: 2.4,
+        tokenUsage: 12800,
+        toolCalls: 42,
+        filesChanged: 8,
+        costToday: 12.50,
+        skillsGenerated: 3
+      };
+    } catch (error) {
+      console.error('Failed to get monitoring stats:', error);
+      return {
+        activeAgents: 0,
+        totalAgents: 0,
+        successRate: 0,
+        uptime: 0,
+        totalExecutions: 0,
+        avgResponseTime: 0,
+        tokenUsage: 0,
+        toolCalls: 0,
+        filesChanged: 0,
+        costToday: 0,
+        skillsGenerated: 0
+      };
+    }
+  }
+
+  async sendIntervention(message: string): Promise<void> {
+    try {
+      console.log('Sending intervention:', message);
+      // 暂时只是记录，实际应该调用后端API
+      await this.logMessage('info', `User intervention: ${message}`);
+    } catch (error) {
+      console.error('Failed to send intervention:', error);
+    }
+  }
 }
 
 export const api = new ApiService();
