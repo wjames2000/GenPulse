@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   GitBranch, 
   Ruler, 
@@ -13,121 +13,255 @@ import {
   ShieldCheck,
   Layout,
   Brain,
-  MessageSquare
+  MessageSquare,
+  AlertCircle as AlertCircleIcon,
+  Play,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
+import { api } from '../services/api';
+
+interface Task {
+  id: string;
+  title: string;
+  content: string;
+  tag: string;
+  tagColor: string;
+  ai?: boolean;
+  tasks?: number;
+  completed?: boolean;
+  agent: 'orchestrator' | 'architect' | 'developer' | 'qa';
+}
 
 export default function KanbanView() {
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: '1',
+      title: 'Logic Parsing',
+      content: 'Deconstructing user intent into discrete functional blocks for architecture mapping...',
+      tag: 'Analyzing',
+      tagColor: 'text-primary border-primary',
+      ai: true,
+      tasks: 12,
+      agent: 'orchestrator'
+    },
+    {
+      id: '2',
+      title: 'Service Mesh',
+      content: 'Defining isolated node communication protocols for the core repository.',
+      tag: 'Pending',
+      tagColor: 'text-white/20 border-white/10',
+      agent: 'orchestrator'
+    },
+    {
+      id: '3',
+      title: 'Database Schema',
+      content: 'Designing database schema for user authentication and data persistence.',
+      tag: 'Processing',
+      tagColor: 'text-primary border-primary',
+      agent: 'architect'
+    },
+    {
+      id: '4',
+      title: 'Express Routes',
+      content: 'Standardized API surface area defined and implemented.',
+      tag: 'Completed',
+      tagColor: 'text-white/10 border-white/5',
+      completed: true,
+      agent: 'developer'
+    },
+    {
+      id: '5',
+      title: 'JWT Middleware',
+      content: 'Strict token validation layer integration finalized.',
+      tag: 'Completed',
+      tagColor: 'text-white/10 border-white/5',
+      completed: true,
+      agent: 'developer'
+    },
+    {
+      id: '6',
+      title: 'Integration: Auth',
+      content: 'Authentication integration testing and validation.',
+      tag: 'Failure Detected',
+      tagColor: 'text-error border-error',
+      agent: 'qa'
+    }
+  ]);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTask, setActiveTask] = useState<string | null>(null);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // 模拟从API获取更新
+      const agents = await api.getAllAgentsStatus();
+      
+      // 根据agent状态更新任务
+      const updatedTasks = tasks.map(task => {
+        const agentStatus = agents[task.agent];
+        if (agentStatus) {
+          const isActive = agentStatus.state === 'active';
+          const isCompleted = agentStatus.progress === 100;
+          
+          let newTag = task.tag;
+          let newTagColor = task.tagColor;
+          
+          if (isCompleted && task.tag !== 'Completed') {
+            newTag = 'Completed';
+            newTagColor = 'text-white/10 border-white/5';
+          } else if (isActive && task.tag !== 'Processing') {
+            newTag = 'Processing';
+            newTagColor = 'text-primary border-primary';
+          }
+          
+          return {
+            ...task,
+            tag: newTag,
+            tagColor: newTagColor,
+            completed: isCompleted
+          };
+        }
+        return task;
+      });
+      
+      setTasks(updatedTasks);
+    } catch (error) {
+      console.error('Failed to refresh tasks:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleRunTask = async (taskId: string) => {
+    setActiveTask(taskId);
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        await api.executeAgent(task.agent, task.title, {
+          description: task.content
+        });
+        
+        // 更新任务状态
+        setTasks(prev => prev.map(t => 
+          t.id === taskId 
+            ? { ...t, tag: 'Processing', tagColor: 'text-primary border-primary', completed: false }
+            : t
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to run task:', error);
+    } finally {
+      setActiveTask(null);
+    }
+  };
+
+  const handleViewLogs = (taskId: string) => {
+    // 这里可以跳转到日志视图或显示模态框
+    console.log('View logs for task:', taskId);
+  };
+
+  const getTasksByAgent = (agent: Task['agent']) => {
+    return tasks.filter(task => task.agent === agent);
+  };
+
+  const getAgentCount = (agent: Task['agent']) => {
+    return getTasksByAgent(agent).length;
+  };
+
   return (
     <div className="flex-1 overflow-x-auto p-12 bg-[#0A0A0A] h-full custom-scrollbar">
+      <div className="flex justify-between items-center mb-12">
+        <div>
+          <span className="text-[10px] uppercase tracking-[0.5em] text-white/40 block mb-2">Execution Kanban / Real-time</span>
+          <h1 className="text-[80px] leading-[0.8] font-black tracking-tighter uppercase">
+            Task<br/>Flow
+          </h1>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors flex items-center gap-2"
+        >
+          <RefreshCw size={12} className={cn(isRefreshing && "animate-spin")} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
+
       <div className="flex gap-1 min-w-max h-full pb-8">
         <KanbanColumn 
           index="01"
           title="Orchestrator" 
-          count={2} 
+          count={getAgentCount('orchestrator')} 
           icon={Brain} 
           color="text-primary"
         >
-          <KanbanCard 
-            tag="Analyzing" 
-            tagColor="text-primary border-primary"
-            title="Logic Parsing"
-            content="Deconstructing user intent into discrete functional blocks for architecture mapping..."
-            ai
-            tasks={12}
-          />
-          <KanbanCard 
-            tag="Pending" 
-            tagColor="text-white/20 border-white/10"
-            title="Service Mesh"
-            content="Defining isolated node communication protocols for the core repository."
-          />
+          {getTasksByAgent('orchestrator').map(task => (
+            <KanbanCard 
+              key={task.id}
+              task={task}
+              onRun={() => handleRunTask(task.id)}
+              onViewLogs={() => handleViewLogs(task.id)}
+              isActive={activeTask === task.id}
+            />
+          ))}
         </KanbanColumn>
 
         <KanbanColumn 
           index="02"
           title="Architect" 
-          count={1} 
+          count={getAgentCount('architect')} 
           icon={Ruler} 
           color="text-white"
         >
-          <div className="bg-white/5 border border-white/10 p-10 flex flex-col gap-8 group relative overflow-hidden">
-            <div className="flex justify-between items-start">
-               <span className="text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">Processing...</span>
-               <Terminal size={14} className="text-white/20" />
-            </div>
-            
-            <div>
-              <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-6">Database Schema</h3>
-              <div className="bg-black border border-white/10 p-6">
-                <code className="text-xs font-mono text-primary leading-relaxed uppercase">
-                  CREATE TABLE users (<br/>
-                  &nbsp;&nbsp;id UUID PRIMARY KEY,<br/>
-                  &nbsp;&nbsp;email VARCHAR(255) UNIQUE<br/>
-                  );
-                </code>
-              </div>
-            </div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10" />
-          </div>
+          {getTasksByAgent('architect').map(task => (
+            <KanbanCard 
+              key={task.id}
+              task={task}
+              onRun={() => handleRunTask(task.id)}
+              onViewLogs={() => handleViewLogs(task.id)}
+              isActive={activeTask === task.id}
+            />
+          ))}
         </KanbanColumn>
 
         <KanbanColumn 
           index="03"
           title="Developer" 
-          count={3} 
+          count={getAgentCount('developer')} 
           icon={Code2} 
           color="text-white/40"
         >
-          <KanbanCard 
-            tag="Completed" 
-            tagColor="text-white/10 border-white/5"
-            title="Express Routes"
-            content="Standardized API surface area defined and implemented."
-            completed
-          />
-          <KanbanCard 
-            tag="Completed" 
-            tagColor="text-white/10 border-white/5"
-            title="JWT Middleware"
-            content="Strict token validation layer integration finalized."
-            completed
-          />
+          {getTasksByAgent('developer').map(task => (
+            <KanbanCard 
+              key={task.id}
+              task={task}
+              onRun={() => handleRunTask(task.id)}
+              onViewLogs={() => handleViewLogs(task.id)}
+              isActive={activeTask === task.id}
+            />
+          ))}
         </KanbanColumn>
 
         <KanbanColumn 
           index="04"
           title="QA Lead" 
-          count={1} 
+          count={getAgentCount('qa')} 
           icon={FactCheckIcon} 
           color="text-error"
         >
-          <div className="bg-white/5 border border-error/20 p-10 flex flex-col gap-8 group">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-black uppercase tracking-widest text-error">Failure Detected</span>
-              <AlertCircle size={18} className="text-error" />
-            </div>
-            
-            <div>
-              <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-6">Integration: Auth</h3>
-              <div className="bg-black border border-error/10 font-mono text-[11px] overflow-hidden">
-                <div className="bg-error/10 text-error px-6 py-3 border-b border-error/5 flex items-center gap-3">
-                  <span className="font-black">-</span>
-                  <span className="line-through">expect(res.status).toBe(200)</span>
-                </div>
-                <div className="bg-primary/5 text-primary px-6 py-3 flex items-center gap-3">
-                  <span className="font-black">+</span>
-                  <span className="font-black">expect(res.status).toBe(401)</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-1">
-              <button className="flex-1 py-4 text-[9px] font-black uppercase tracking-widest border border-white/10 text-white/40 hover:text-white transition-all">Logs</button>
-              <button className="flex-1 py-4 text-[9px] font-black uppercase tracking-widest bg-primary text-black hover:scale-105 transition-all">Re-run</button>
-            </div>
-          </div>
+          {getTasksByAgent('qa').map(task => (
+            <KanbanCard 
+              key={task.id}
+              task={task}
+              onRun={() => handleRunTask(task.id)}
+              onViewLogs={() => handleViewLogs(task.id)}
+              isActive={activeTask === task.id}
+            />
+          ))}
         </KanbanColumn>
       </div>
     </div>
@@ -156,75 +290,122 @@ function KanbanColumn({ index, title, count, icon: Icon, color, children }: any)
   );
 }
 
-function KanbanCard({ tag, tagColor, title, content, ai, tasks, completed }: any) {
+interface KanbanCardProps {
+  task: Task;
+  onRun: () => void;
+  onViewLogs: () => void;
+  isActive: boolean;
+  key?: string; // React key prop
+}
+
+function KanbanCard({ task, onRun, onViewLogs, isActive }: KanbanCardProps) {
+  const isError = task.tag.includes('Failure') || task.tag.includes('Error');
+  const isProcessing = task.tag === 'Processing';
+  const isCompleted = task.completed;
+
   return (
     <div className={cn(
-      "p-10 flex flex-col gap-8 transition-all duration-500 group relative border border-transparent hover:bg-white/[0.03]",
-      completed && "opacity-20 grayscale",
-      !completed && "border-b border-white/5"
+      "p-10 flex flex-col gap-8 transition-all duration-500 group relative border",
+      isCompleted 
+        ? "border-white/5 opacity-20 grayscale" 
+        : isError
+        ? "border-error/20 hover:border-error/40"
+        : "border-white/10 hover:border-white/20 hover:bg-white/[0.03]",
+      isActive && "border-primary/50 bg-primary/5"
     )}>
       <div className="flex justify-between items-start">
-        <span className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-1 border", tagColor)}>
-          {tag}
+        <span className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-1 border", task.tagColor)}>
+          {task.tag}
         </span>
-        {completed ? (
+        {isCompleted ? (
           <CheckCircle2 size={16} className="text-primary" />
+        ) : isProcessing ? (
+          <Loader2 size={16} className="text-primary animate-spin" />
         ) : (
           <div className="flex gap-1">
-             <div className="w-1 h-1 bg-white/20 rounded-full" />
-             <div className="w-1 h-1 bg-white/20 rounded-full" />
-             <div className="w-1 h-1 bg-white/20 rounded-full" />
+            <div className="w-1 h-1 bg-white/20 rounded-full" />
+            <div className="w-1 h-1 bg-white/20 rounded-full" />
+            <div className="w-1 h-1 bg-white/20 rounded-full" />
           </div>
         )}
       </div>
 
       <div>
-        <h3 className={cn("text-2xl font-black uppercase tracking-tighter mb-4 transition-all", completed ? "text-white/20 line-through" : "text-white group-hover:text-primary")}>
-          {title}
+        <h3 className={cn(
+          "text-2xl font-black uppercase tracking-tighter mb-4 transition-all",
+          isCompleted 
+            ? "text-white/20 line-through" 
+            : isError
+            ? "text-error"
+            : "text-white group-hover:text-primary"
+        )}>
+          {task.title}
         </h3>
-        <p className={cn("text-xs leading-relaxed uppercase font-bold tracking-wide", completed ? "text-white/10 italic" : "text-white/40")}>
-          {content}
+        <p className={cn(
+          "text-xs leading-relaxed uppercase font-bold tracking-wide",
+          isCompleted 
+            ? "text-white/10 italic" 
+            : isError
+            ? "text-error/60"
+            : "text-white/40"
+        )}>
+          {task.content}
         </p>
       </div>
 
-      {(ai || tasks) && (
+      {(task.ai || task.tasks) && (
         <div className="flex items-center justify-between pt-8 border-t border-white/5">
           <div className="flex items-center gap-4">
-            {ai && (
+            {task.ai && (
               <div className="flex items-center gap-2">
                 <Brain size={14} className="text-primary" />
                 <span className="text-[9px] font-black uppercase tracking-widest text-primary">Neural Node</span>
               </div>
             )}
           </div>
-          {tasks && (
+          {task.tasks && (
             <div className="flex items-center gap-3 text-white/20">
               <MessageSquare size={12} />
-              <span className="text-[10px] font-black">{tasks}</span>
+              <span className="text-[10px] font-black">{task.tasks}</span>
             </div>
           )}
+        </div>
+      )}
+
+      {!isCompleted && (
+        <div className="flex gap-1 mt-4">
+          <button 
+            onClick={onViewLogs}
+            className="flex-1 py-4 text-[9px] font-black uppercase tracking-widest border border-white/10 text-white/40 hover:text-white transition-all"
+          >
+            Logs
+          </button>
+          <button 
+            onClick={onRun}
+            disabled={isProcessing || isActive}
+            className={cn(
+              "flex-1 py-4 text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+              isError
+                ? "bg-error text-black hover:bg-error/90"
+                : "bg-primary text-black hover:scale-105"
+            )}
+          >
+            {isProcessing || isActive ? (
+              <>
+                <Loader2 size={12} className="animate-spin" />
+                Running...
+              </>
+            ) : (
+              <>
+                <Play size={12} />
+                {isError ? 'Re-run' : 'Run'}
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-function AlertCircle({ size, className }: any) {
-  return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2.5" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="12" />
-      <line x1="12" x2="12.01" y1="16" y2="16" />
-    </svg>
-  );
-}
+

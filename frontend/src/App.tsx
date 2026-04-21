@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Beaker, 
   GitBranch, 
@@ -24,7 +24,11 @@ import {
   Layout,
   Terminal as TerminalIcon,
   Diff as DiffIcon,
-  CheckCircle2
+  CheckCircle2,
+  Activity,
+  Cpu,
+  Database,
+  Code2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './utils';
@@ -36,14 +40,47 @@ import NeuralAssetsView from './components/NeuralAssetsView';
 import KanbanView from './components/KanbanView';
 import SkillsView from './components/SkillsView';
 import DiffView from './components/DiffView';
+import { api } from './services/api';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [systemStatus, setSystemStatus] = useState<'healthy' | 'degraded' | 'error'>('healthy');
+  const [activeAgents, setActiveAgents] = useState(0);
+
+  useEffect(() => {
+    const checkSystemStatus = async () => {
+      try {
+        const health = await api.healthCheck();
+        if (health.status === 'healthy') {
+          setSystemStatus('healthy');
+        } else {
+          setSystemStatus('degraded');
+        }
+
+        const agentsStatus = await api.getAllAgentsStatus();
+        const activeCount = Object.values(agentsStatus).filter((agent: any) => 
+          agent?.state === 'active'
+        ).length;
+        setActiveAgents(activeCount);
+      } catch (error) {
+        setSystemStatus('error');
+        console.error('Failed to check system status:', error);
+      }
+    };
+
+    checkSystemStatus();
+    const interval = setInterval(checkSystemStatus, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const navItems = [
-    { id: 'neural' as View, icon: Beaker, label: '认知实验室' },
-    { id: 'dashboard' as View, icon: GitBranch, label: '项目流水线' },
+    { id: 'dashboard' as View, icon: GitBranch, label: '项目流水线', badge: activeAgents > 0 ? activeAgents.toString() : undefined },
+    { id: 'pipeline' as View, icon: Plus, label: '新建项目' },
+    { id: 'kanban' as View, icon: Layout, label: '任务看板' },
+    { id: 'neural' as View, icon: Brain, label: '认知资产' },
+    { id: 'skills' as View, icon: Code2, label: '技能库' },
     { id: 'history' as View, icon: History, label: '开发历史' },
     { id: 'settings' as View, icon: Settings, label: '系统设置' },
   ];
@@ -56,7 +93,7 @@ export default function App() {
         isSidebarOpen ? "w-64" : "w-20"
       )}>
         <div className="px-8 mb-12 flex items-center space-x-3">
-          <div className="text-xl font-black tracking-tighter text-primary">VOID™</div>
+          <div className="text-xl font-black tracking-tighter text-primary">GenPulse™</div>
           {isSidebarOpen && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col">
               <div className="text-[10px] uppercase font-bold tracking-[0.3em] text-white/40 leading-none">Cognitive</div>
@@ -66,34 +103,67 @@ export default function App() {
         </div>
 
         <div className="px-6 mb-12">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              systemStatus === 'healthy' ? "bg-primary animate-pulse" :
+              systemStatus === 'degraded' ? "bg-yellow-500" :
+              "bg-red-500"
+            )} />
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/40">
+              {systemStatus === 'healthy' ? 'System Online' :
+               systemStatus === 'degraded' ? 'System Degraded' :
+               'System Error'}
+            </span>
+          </div>
           <button 
             onClick={() => setCurrentView('pipeline')}
             className={cn(
-              "w-full bg-primary-container text-on-primary-container py-4 px-4 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-xl rounded-none",
-              !isSidebarOpen && "px-0 justify-center"
+              "w-full bg-primary text-black py-4 px-4 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-xl rounded-none flex items-center justify-center gap-3",
+              !isSidebarOpen && "px-0"
             )}
           >
-            {isSidebarOpen ? "New Pipeline" : <Plus size={18} />}
+            {isSidebarOpen ? (
+              <>
+                <Plus size={16} />
+                New Pipeline
+              </>
+            ) : (
+              <Plus size={18} />
+            )}
           </button>
         </div>
 
-        <div className="flex-1 flex flex-col space-y-2 px-4 uppercase text-[10px] font-bold tracking-[0.2em] text-white/60">
+        <div className="flex-1 flex flex-col space-y-1 px-4 uppercase text-[10px] font-bold tracking-[0.2em] text-white/60">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setCurrentView(item.id)}
               className={cn(
-                "py-4 px-4 flex items-center space-x-4 transition-all hover:text-white relative",
+                "py-4 px-4 flex items-center justify-between transition-all hover:text-white hover:bg-white/5 relative group",
                 currentView === item.id ? "text-primary bg-white/5" : ""
               )}
             >
-              <item.icon size={16} className="shrink-0" />
-              {isSidebarOpen && <span className="whitespace-nowrap">{item.label}</span>}
+              <div className="flex items-center space-x-4">
+                <item.icon size={16} className="shrink-0" />
+                {isSidebarOpen && <span className="whitespace-nowrap">{item.label}</span>}
+              </div>
+              
+              {isSidebarOpen && item.badge && (
+                <span className="text-[8px] font-black bg-primary text-black px-2 py-1 rounded-full min-w-[20px] text-center">
+                  {item.badge}
+                </span>
+              )}
+              
               {currentView === item.id && (
                 <motion.div 
                   layoutId="activeNav"
                   className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"
                 />
+              )}
+              
+              {!isSidebarOpen && currentView === item.id && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
               )}
             </button>
           ))}
@@ -135,6 +205,13 @@ export default function App() {
                 type="text" 
                 placeholder="SEARCH COGNITIVE ASSETS" 
                 className="bg-transparent border-none pl-6 pr-4 py-2 text-[10px] font-black tracking-widest text-white focus:ring-0 outline-none w-64 opacity-60 focus:opacity-100 transition-all placeholder:text-white/20"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const target = e.target as HTMLInputElement;
+                    console.log('Search for:', target.value);
+                    // 这里可以添加搜索功能
+                  }
+                }}
               />
             </div>
           </div>
@@ -152,7 +229,18 @@ export default function App() {
             
             <div className="h-6 w-[1px] bg-white/10" />
             
-            <button className="bg-primary text-black px-8 py-3 font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg rounded-none">
+            <button 
+              onClick={async () => {
+                try {
+                  await api.logMessage('info', 'Manual agent deployment triggered');
+                  // 这里可以添加部署逻辑
+                  console.log('Deploying agent...');
+                } catch (error) {
+                  console.error('Failed to deploy agent:', error);
+                }
+              }}
+              className="bg-primary text-black px-8 py-3 font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg rounded-none"
+            >
               Deploy Agent
             </button>
 

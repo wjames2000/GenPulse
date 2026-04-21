@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   GitBranch, 
   Ruler, 
@@ -13,15 +13,140 @@ import {
   Send, 
   Brain,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Play,
+  Pause,
+  AlertTriangle
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
 import { Agent } from '../types';
 import { AGENTS, TIMELINE, LOGS, THOUGHTS } from '../constants';
+import { api } from '../services/api';
 
 export default function DashboardView() {
   const [activeTab, setActiveTab] = useState<'logs' | 'terminal' | 'network'>('logs');
+  const [agents, setAgents] = useState<Agent[]>(AGENTS);
+  const [logs, setLogs] = useState(LOGS);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
+  const [pipelineStatus, setPipelineStatus] = useState<'idle' | 'active' | 'completed' | 'error'>('idle');
+  const [activeAgentsCount, setActiveAgentsCount] = useState(2);
+  const [successRate, setSuccessRate] = useState(85);
+  const [uptime, setUptime] = useState(99);
+  const refreshIntervalRef = useRef<NodeJS.Timeout>();
+
+  const fetchAgentsStatus = async () => {
+    try {
+      const status = await api.getAllAgentsStatus();
+      
+      // 更新agents状态
+      const updatedAgents = agents.map(agent => {
+        const agentStatus = status[agent.id];
+        if (agentStatus) {
+          return {
+            ...agent,
+            status: agentStatus.state === 'active' ? 'active' : 
+                    agentStatus.state === 'waiting' ? 'waiting' : 'idle',
+            progress: agentStatus.progress || agent.progress,
+            currentTask: agentStatus.current_task || agent.currentTask,
+            timeActive: agentStatus.time_active || agent.timeActive
+          };
+        }
+        return agent;
+      });
+      
+      setAgents(updatedAgents);
+      
+      // 计算统计数据
+      const activeCount = updatedAgents.filter(a => a.status === 'active').length;
+      const completedCount = updatedAgents.filter(a => a.progress === 100).length;
+      
+      setActiveAgentsCount(activeCount);
+      setSuccessRate(completedCount > 0 ? Math.round((completedCount / updatedAgents.length) * 100) : 0);
+      
+      // 更新管道状态
+      if (activeCount > 0) {
+        setPipelineStatus('active');
+      } else if (completedCount === updatedAgents.length) {
+        setPipelineStatus('completed');
+      } else {
+        setPipelineStatus('idle');
+      }
+      
+      // 获取最新日志
+      const newLogs = await api.getLogs();
+      if (Array.isArray(newLogs) && newLogs.length > 0) {
+        const formattedLogs = newLogs.map((log: any) => ({
+          timestamp: new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false }),
+          level: log.level as 'info' | 'debug' | 'success' | 'warn' | 'error' | 'sys',
+          message: log.message
+        }));
+        setLogs(prev => [...formattedLogs, ...prev].slice(0, 50)); // 保持最多50条日志
+      }
+    } catch (error) {
+      console.error('Failed to fetch agents status:', error);
+      setPipelineStatus('error');
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchAgentsStatus();
+    setIsRefreshing(false);
+  };
+
+  const handleStartPipeline = async () => {
+    try {
+      await api.startPipeline('current-project');
+      await fetchAgentsStatus();
+    } catch (error) {
+      console.error('Failed to start pipeline:', error);
+    }
+  };
+
+  const handleIntervene = async (message: string) => {
+    try {
+      await api.logMessage('info', `User intervention: ${message}`);
+      // 这里可以添加更多的干预逻辑
+      const newLog = {
+        timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+        level: 'info' as const,
+        message: `User intervention: ${message}`
+      };
+      setLogs(prev => [newLog, ...prev].slice(0, 50));
+    } catch (error) {
+      console.error('Failed to send intervention:', error);
+    }
+  };
+
+  useEffect(() => {
+    // 初始加载
+    fetchAgentsStatus();
+
+    // 设置自动刷新
+    if (isAutoRefresh) {
+      refreshIntervalRef.current = setInterval(fetchAgentsStatus, 5000); // 每5秒刷新一次
+    }
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [isAutoRefresh]);
+
+  useEffect(() => {
+    // 更新自动刷新定时器
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+    }
+    
+    if (isAutoRefresh) {
+      refreshIntervalRef.current = setInterval(fetchAgentsStatus, 5000);
+    }
+  }, [isAutoRefresh]);
 
   return (
     <div className="flex flex-1 h-full overflow-hidden p-12 gap-12 bg-[#0A0A0A]">
@@ -29,7 +154,32 @@ export default function DashboardView() {
       <div className="flex-1 flex flex-col gap-12 overflow-y-auto pr-4 custom-scrollbar">
         {/* Page Header */}
         <section className="relative">
-          <span className="text-[10px] uppercase tracking-[0.4em] text-white/40 block mb-4">Pipeline Execution / Live Monitoring / 2024</span>
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-[10px] uppercase tracking-[0.4em] text-white/40">
+              Pipeline Execution / Live Monitoring / 2024
+            </span>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+                className={cn(
+                  "text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-colors",
+                  isAutoRefresh ? "text-primary" : "text-white/40 hover:text-white"
+                )}
+              >
+                {isAutoRefresh ? <Pause size={12} /> : <Play size={12} />}
+                {isAutoRefresh ? "Auto Refresh ON" : "Auto Refresh OFF"}
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors flex items-center gap-2"
+              >
+                <RefreshCw size={12} className={cn(isRefreshing && "animate-spin")} />
+                Refresh
+              </button>
+            </div>
+          </div>
+          
           <h1 className="text-[120px] leading-[0.8] font-black tracking-tighter uppercase mb-6">
             Hyper<br/>Pulse
           </h1>
@@ -39,25 +189,49 @@ export default function DashboardView() {
           
           <div className="flex items-center gap-6 mt-8">
             <div className="flex flex-col gap-1">
-              <span className="text-[40px] font-black leading-none">01</span>
+              <span className="text-[40px] font-black leading-none">{activeAgentsCount}</span>
               <span className="text-[10px] uppercase font-black tracking-widest text-primary">Active Agents</span>
             </div>
             <div className="w-[1px] h-12 bg-white/10" />
             <div className="flex flex-col gap-1">
-              <span className="text-[40px] font-black leading-none text-primary">08</span>
+              <span className="text-[40px] font-black leading-none text-primary">{successRate}%</span>
               <span className="text-[10px] uppercase font-black tracking-widest text-white/40">Success Rate</span>
             </div>
             <div className="w-[1px] h-12 bg-white/10" />
             <div className="flex flex-col gap-1 text-primary">
-              <span className="text-[40px] font-black leading-none">99%</span>
+              <span className="text-[40px] font-black leading-none">{uptime}%</span>
               <span className="text-[10px] uppercase font-black tracking-widest text-white/40">Uptime</span>
+            </div>
+            
+            <div className="ml-auto">
+              <button
+                onClick={handleStartPipeline}
+                className={cn(
+                  "px-8 py-3 font-black uppercase text-[10px] tracking-widest transition-all shadow-lg rounded-none flex items-center gap-3",
+                  pipelineStatus === 'active' 
+                    ? "bg-primary/20 text-primary border border-primary/30" 
+                    : "bg-primary text-black hover:scale-105"
+                )}
+              >
+                {pipelineStatus === 'active' ? (
+                  <>
+                    <AlertTriangle size={14} />
+                    Pipeline Running
+                  </>
+                ) : (
+                  <>
+                    <Play size={14} />
+                    Start Pipeline
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </section>
 
         {/* Agent Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1 border-y border-white/10 py-12">
-          {AGENTS.map((agent) => (
+          {agents.map((agent) => (
             <AgentCard key={agent.id} agent={agent} />
           ))}
         </div>
@@ -117,8 +291,8 @@ export default function DashboardView() {
               </button>
             ))}
           </div>
-          <div className="p-8 flex-1 font-mono text-[11px] space-y-3 custom-scrollbar uppercase tracking-tight">
-            {LOGS.map((log, i) => (
+          <div className="p-8 flex-1 font-mono text-[11px] space-y-3 custom-scrollbar uppercase tracking-tight overflow-y-auto max-h-[300px]">
+            {logs.map((log, i) => (
               <div key={i} className="flex gap-6 animate-in fade-in slide-in-from-left-4 duration-300 items-baseline opacity-60 hover:opacity-100 transition-opacity">
                 <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[{log.timestamp}]</span>
                 <span className={cn(
@@ -126,14 +300,20 @@ export default function DashboardView() {
                   log.level === 'info' && "text-white",
                   log.level === 'debug' && "text-white/40 text-stroke",
                   log.level === 'success' && "text-primary",
+                  log.level === 'warn' && "text-yellow-500",
                   log.level === 'error' && "text-red-500",
                   log.level === 'sys' && "text-white/30"
                 )}>
                   {log.level}
                 </span>
-                <span className="text-white/80">{log.message}</span>
+                <span className="text-white/80 flex-1">{log.message}</span>
               </div>
             ))}
+            {logs.length === 0 && (
+              <div className="text-center text-white/40 py-8">
+                No logs available
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -183,16 +363,31 @@ export default function DashboardView() {
 
         {/* Input Area */}
         <div className="p-10 bg-black/40 border-t border-white/10">
-          <div className="relative">
-            <input 
-              type="text" 
-              placeholder="INTERVENE IN ARCHITECTURE..." 
-              className="w-full bg-white/5 border border-white/10 py-5 px-6 text-[10px] font-black tracking-widest text-white focus:bg-white/10 outline-none transition-all placeholder:text-white/20 uppercase"
-            />
-            <button className="absolute right-6 top-1/2 -translate-y-1/2 text-primary hover:scale-125 transition-all">
-              <Send size={18} />
-            </button>
-          </div>
+          <form 
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              const input = form.querySelector('input') as HTMLInputElement;
+              if (input.value.trim()) {
+                await handleIntervene(input.value);
+                input.value = '';
+              }
+            }}
+          >
+            <div className="relative">
+              <input 
+                type="text" 
+                placeholder="INTERVENE IN ARCHITECTURE..." 
+                className="w-full bg-white/5 border border-white/10 py-5 px-6 text-[10px] font-black tracking-widest text-white focus:bg-white/10 outline-none transition-all placeholder:text-white/20 uppercase"
+              />
+              <button 
+                type="submit"
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-primary hover:scale-125 transition-all"
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          </form>
         </div>
 
         <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-4 origin-left -rotate-90 -ml-16 pointer-events-none">

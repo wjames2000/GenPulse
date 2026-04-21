@@ -51,6 +51,18 @@ const (
 	CapabilityTesting        AgentCapability = "testing"
 	CapabilityReview         AgentCapability = "review"
 	CapabilityPlanning       AgentCapability = "planning"
+	// 新增能力
+	CapabilityDesign           AgentCapability = "design"
+	CapabilityAnalysis         AgentCapability = "analysis"
+	CapabilityDatabaseDesign   AgentCapability = "database_design"
+	CapabilityAPIDesign        AgentCapability = "api_design"
+	CapabilityUIUXDesign       AgentCapability = "uiux_design"
+	CapabilityQualityAssurance AgentCapability = "quality_assurance"
+	CapabilityBugDetection     AgentCapability = "bug_detection"
+	CapabilityDeployment       AgentCapability = "deployment"
+	CapabilityMonitoring       AgentCapability = "monitoring"
+	CapabilitySecurityScan     AgentCapability = "security_scan"
+	CapabilityQualityCheck     AgentCapability = "quality_check"
 )
 
 // AgentConfig Agent配置
