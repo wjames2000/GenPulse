@@ -7,6 +7,23 @@ import (
 	"time"
 )
 
+// EpisodicMemoryRecord 情节记忆记录（用于API返回）
+type EpisodicMemoryRecord struct {
+	ID             string         `json:"id"`
+	TaskID         string         `json:"task_id"`
+	TaskType       string         `json:"task_type"`
+	Description    string         `json:"description"`
+	AgentID        string         `json:"agent_id"`
+	AgentName      string         `json:"agent_name"`
+	Success        bool           `json:"success"`
+	DurationMs     int64          `json:"duration_ms"`
+	CreatedAt      time.Time      `json:"created_at"`
+	Keywords       []string       `json:"keywords"`
+	ToolUsage      map[string]int `json:"tool_usage"`
+	ContextData    map[string]any `json:"context_data"`
+	RelevanceScore float64        `json:"relevance_score"`
+}
+
 // SearchEngine 记忆检索引擎
 type SearchEngine struct {
 	workingMemory  *WorkingMemoryManager
@@ -444,4 +461,128 @@ func min(a, b float64) float64 {
 		return a
 	}
 	return b
+}
+
+// SearchEpisodic 搜索情节记忆（便捷方法）
+func (se *SearchEngine) SearchEpisodic(query string, limit int) ([]*EpisodicMemoryRecord, error) {
+	if se.episodicMemory == nil {
+		return nil, fmt.Errorf("episodic memory not initialized")
+	}
+
+	// 构建搜索查询
+	searchQuery := &SearchQuery{
+		Query: query,
+		Limit: limit,
+	}
+
+	// 执行搜索
+	results, err := se.episodicMemory.Search(searchQuery)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search episodic memory: %w", err)
+	}
+
+	// 转换为EpisodicMemoryRecord
+	records := make([]*EpisodicMemoryRecord, len(results))
+	for i, result := range results {
+		record := result.Record
+		// 从metadata中提取额外信息
+		agentID := ""
+		agentName := ""
+		durationMs := int64(0)
+		keywords := []string{}
+		toolUsage := make(map[string]int)
+		contextData := make(map[string]any)
+
+		metadata := record.Metadata
+		if id, ok := metadata["agent_id"].(string); ok {
+			agentID = id
+		}
+		if name, ok := metadata["agent_name"].(string); ok {
+			agentName = name
+		}
+		if duration, ok := metadata["duration_ms"].(float64); ok {
+			durationMs = int64(duration)
+		}
+		if kw, ok := metadata["keywords"].([]string); ok {
+			keywords = kw
+		}
+		if tools, ok := metadata["tool_usage"].(map[string]int); ok {
+			toolUsage = tools
+		}
+		if context, ok := metadata["context_data"].(map[string]any); ok {
+			contextData = context
+		}
+
+		records[i] = &EpisodicMemoryRecord{
+			ID:             record.ID,
+			TaskID:         record.TaskID,
+			TaskType:       record.TaskType,
+			Description:    record.Description,
+			AgentID:        agentID,
+			AgentName:      agentName,
+			Success:        record.Success,
+			DurationMs:     durationMs,
+			CreatedAt:      record.CreatedAt,
+			Keywords:       keywords,
+			ToolUsage:      toolUsage,
+			ContextData:    contextData,
+			RelevanceScore: result.Relevance,
+		}
+	}
+
+	return records, nil
+}
+
+// SemanticMemory 获取语义记忆实例
+func (se *SearchEngine) SemanticMemory() *SemanticMemory {
+	return se.semanticMemory
+}
+
+// EpisodicMemory 获取情节记忆实例
+func (se *SearchEngine) EpisodicMemory() *EpisodicMemory {
+	return se.episodicMemory
+}
+
+// WorkingMemory 获取工作记忆实例
+func (se *SearchEngine) WorkingMemory() *WorkingMemoryManager {
+	return se.workingMemory
+}
+
+// GetStats 获取统计信息
+func (se *SearchEngine) GetStats() (map[string]any, error) {
+	stats := make(map[string]any)
+
+	// 获取情节记忆统计
+	if se.episodicMemory != nil {
+		episodicStats, err := se.episodicMemory.GetStats()
+		if err == nil {
+			stats["episodic_memories"] = episodicStats["total_records"]
+			stats["total_memories"] = episodicStats["total_records"]
+		}
+	}
+
+	// 获取语义记忆统计
+	if se.semanticMemory != nil {
+		// 语义记忆目前没有GetStats方法，使用默认值
+		stats["semantic_memories"] = 1 // 用户画像
+		if total, ok := stats["total_memories"].(int); ok {
+			stats["total_memories"] = total + 1
+		} else {
+			stats["total_memories"] = 1
+		}
+	}
+
+	// 获取工作记忆统计
+	if se.workingMemory != nil {
+		// 工作记忆目前没有GetStats方法
+		stats["working_memories"] = 0
+	}
+
+	// 添加其他统计信息
+	stats["total_searches"] = 0
+	stats["avg_search_time_ms"] = 0.0
+	stats["cache_hit_rate"] = 0.0
+	stats["last_updated"] = time.Now()
+
+	return stats, nil
 }
