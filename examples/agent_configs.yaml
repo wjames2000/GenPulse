@@ -1,0 +1,200 @@
+# Agent配置示例文件
+# 这个文件展示了如何配置所有角色的Agent
+
+agents:
+  # 全栈开发Agent
+  - id: "fullstack_dev_001"
+    name: "全栈开发工程师"
+    role: "fullstack_developer"
+    description: "全栈开发工程师，能够处理前后端开发任务"
+    model_config:
+      type: "gemini"
+      name: "gemini-1.5-pro"
+      provider: "google"
+    capabilities:
+      - "code_generation"
+      - "file_operation"
+      - "git_operation"
+      - "shell_execution"
+      - "project_setup"
+    tools:
+      - "fs_tool"
+      - "git_tool"
+      - "shell_tool"
+      - "project_tool"
+    max_retries: 3
+    timeout: "5m"
+    enabled: true
+
+  # 编排器Agent
+  - id: "orchestrator_001"
+    name: "项目编排器"
+    role: "orchestrator"
+    description: "项目编排器，负责任务分解、执行计划生成和Agent调度"
+    model_config:
+      type: "gemini"
+      name: "gemini-1.5-pro"
+      provider: "google"
+    capabilities:
+      - "planning"
+    tools:
+      - "project_tool"
+    max_retries: 3
+    timeout: "5m"
+    enabled: true
+
+  # 产品经理Agent
+  - id: "product_manager_001"
+    name: "产品经理"
+    role: "product_manager"
+    description: "产品经理，负责需求分析、PRD文档生成和产品规划"
+    model_config:
+      type: "gemini"
+      name: "gemini-1.5-pro"
+      provider: "google"
+    capabilities:
+      - "planning"
+    tools:
+      - "fs_tool"
+      - "project_tool"
+    max_retries: 3
+    timeout: "5m"
+    enabled: true
+
+  # 架构师Agent
+  - id: "architect_001"
+    name: "技术架构师"
+    role: "architect"
+    description: "技术架构师，负责技术架构设计、技术方案输出和系统设计"
+    model_config:
+      type: "gemini"
+      name: "gemini-1.5-pro"
+      provider: "google"
+    capabilities:
+      - "planning"
+      - "code_generation"
+    tools:
+      - "fs_tool"
+      - "project_tool"
+    max_retries: 3
+    timeout: "5m"
+    enabled: true
+
+  # 前端开发Agent
+  - id: "frontend_dev_001"
+    name: "前端开发工程师"
+    role: "frontend_developer"
+    description: "前端开发工程师，负责React/Vue组件开发和前端界面实现"
+    model_config:
+      type: "gemini"
+      name: "gemini-1.5-pro"
+      provider: "google"
+    capabilities:
+      - "code_generation"
+      - "file_operation"
+    tools:
+      - "fs_tool"
+      - "project_tool"
+    max_retries: 3
+    timeout: "5m"
+    enabled: true
+
+  # 后端开发Agent
+  - id: "backend_dev_001"
+    name: "后端开发工程师"
+    role: "backend_developer"
+    description: "后端开发工程师，负责后端API、数据库代码生成和业务逻辑实现"
+    model_config:
+      type: "gemini"
+      name: "gemini-1.5-pro"
+      provider: "google"
+    capabilities:
+      - "code_generation"
+      - "file_operation"
+    tools:
+      - "fs_tool"
+      - "project_tool"
+    max_retries: 3
+    timeout: "5m"
+    enabled: true
+
+  # QA工程师Agent
+  - id: "qa_engineer_001"
+    name: "QA工程师"
+    role: "qa_engineer"
+    description: "QA工程师，负责测试用例生成与执行、质量保证"
+    model_config:
+      type: "gemini"
+      name: "gemini-1.5-pro"
+      provider: "google"
+    capabilities:
+      - "testing"
+    tools:
+      - "fs_tool"
+      - "shell_tool"
+      - "project_tool"
+    max_retries: 3
+    timeout: "5m"
+    enabled: true
+
+  # DevOps工程师Agent
+  - id: "devops_engineer_001"
+    name: "DevOps工程师"
+    role: "devops"
+    description: "DevOps工程师，负责项目构建、启动、部署验证和运维"
+    model_config:
+      type: "gemini"
+      name: "gemini-1.5-pro"
+      provider: "google"
+    capabilities:
+      - "shell_execution"
+      - "project_setup"
+    tools:
+      - "shell_tool"
+      - "project_tool"
+    max_retries: 3
+    timeout: "5m"
+    enabled: true
+
+  # 代码审查员Agent
+  - id: "reviewer_001"
+    name: "代码审查员"
+    role: "reviewer"
+    description: "代码审查员，负责代码审查、安全扫描和质量检查"
+    model_config:
+      type: "gemini"
+      name: "gemini-1.5-pro"
+      provider: "google"
+    capabilities:
+      - "review"
+    tools:
+      - "fs_tool"
+      - "project_tool"
+    max_retries: 3
+    timeout: "5m"
+    enabled: true
+
+# 示例项目配置
+projects:
+  - name: "示例Web应用"
+    description: "一个简单的待办事项Web应用"
+    agents:
+      - "product_manager_001"
+      - "architect_001"
+      - "frontend_dev_001"
+      - "backend_dev_001"
+      - "qa_engineer_001"
+      - "devops_engineer_001"
+    workflow:
+      - role: "product_manager"
+        task: "分析待办事项应用需求"
+      - role: "architect"
+        task: "设计技术架构和数据库"
+      - role: "frontend_developer"
+        task: "实现React前端界面"
+      - role: "backend_developer"
+        task: "实现Go后端API"
+      - role: "qa_engineer"
+        task: "编写和执行测试用例"
+      - role: "devops"
+        task: "构建和部署应用"

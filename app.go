@@ -54,8 +54,26 @@ func (a *App) GetAppInfo() map[string]interface{} {
 
 // GetLogs 获取日志
 func (a *App) GetLogs() []map[string]interface{} {
-	// 暂时返回空数组
-	return []map[string]interface{}{}
+	// 从基础服务获取日志
+	logs := a.baseService.GetLogs()
+
+	// 转换为前端需要的格式
+	result := make([]map[string]interface{}, len(logs))
+	for i, log := range logs {
+		result[i] = map[string]interface{}{
+			"id":        fmt.Sprintf("log-%d-%d", time.Now().UnixNano(), i),
+			"timestamp": log["timestamp"],
+			"level":     log["level"],
+			"message":   log["message"],
+			"agent_id":  log["agent_id"],
+			"task_id":   log["task_id"],
+			"details":   log["details"],
+			"duration":  log["duration"],
+			"tags":      log["tags"],
+		}
+	}
+
+	return result
 }
 
 // Agent相关命令
@@ -176,4 +194,36 @@ func (a *App) HealthCheck() map[string]interface{} {
 // LogMessage 记录日志消息
 func (a *App) LogMessage(level string, message string) {
 	a.baseService.LogMessage(level, message)
+}
+
+// LogMessageWithDetails 记录带详细信息的日志消息
+func (a *App) LogMessageWithDetails(level string, message string, details map[string]interface{}, agentID string, taskID string, tags []string, duration int64) {
+	a.baseService.LogMessageWithDetails(level, message, details, agentID, taskID, tags, duration)
+}
+
+// GetLogsByLevel 按级别获取日志
+func (a *App) GetLogsByLevel(level string) []map[string]interface{} {
+	return a.baseService.GetLogsByLevel(level)
+}
+
+// GetLogsByAgent 按Agent获取日志
+func (a *App) GetLogsByAgent(agentID string) []map[string]interface{} {
+	return a.baseService.GetLogsByAgent(agentID)
+}
+
+// GetLogsByTimeRange 按时间范围获取日志
+func (a *App) GetLogsByTimeRange(startTimeStr string, endTimeStr string) []map[string]interface{} {
+	startTime, _ := time.Parse(time.RFC3339, startTimeStr)
+	endTime, _ := time.Parse(time.RFC3339, endTimeStr)
+	return a.baseService.GetLogsByTimeRange(startTime, endTime)
+}
+
+// ClearLogs 清空日志
+func (a *App) ClearLogs() {
+	a.baseService.ClearLogs()
+}
+
+// GetLogStatistics 获取日志统计信息
+func (a *App) GetLogStatistics() map[string]interface{} {
+	return a.baseService.GetLogStatistics()
 }

@@ -24,6 +24,7 @@ import { cn } from '../utils';
 import { Agent } from '../types';
 import { AGENTS, TIMELINE, LOGS, THOUGHTS } from '../constants';
 import { api } from '../services/api';
+import LogViewer from './LogViewer';
 
 export default function DashboardView() {
   const [activeTab, setActiveTab] = useState<'logs' | 'terminal' | 'network'>('logs');
@@ -230,10 +231,52 @@ export default function DashboardView() {
         </section>
 
         {/* Agent Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1 border-y border-white/10 py-12">
-          {agents.map((agent) => (
-            <AgentCard key={agent.id} agent={agent} />
-          ))}
+        <div className="border-y border-white/10 py-12">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-4">
+              <span className="w-8 h-[1px] bg-primary"></span>
+              Agent Status Dashboard
+            </h2>
+            <div className="flex items-center gap-4">
+              <div className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40">
+                {agents.filter(a => a.status === 'active').length} Active / {agents.length} Total
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full"></div>
+                <span className="text-[8px] uppercase tracking-widest text-white/40">Active</span>
+                <div className="w-2 h-2 bg-yellow-500 rounded-full ml-4"></div>
+                <span className="text-[8px] uppercase tracking-widest text-white/40">Waiting</span>
+                <div className="w-2 h-2 bg-green-500 rounded-full ml-4"></div>
+                <span className="text-[8px] uppercase tracking-widest text-white/40">Completed</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1">
+            {agents.map((agent) => (
+              <AgentCard key={agent.id} agent={agent} />
+            ))}
+          </div>
+
+          {/* Agent Statistics */}
+          <div className="grid grid-cols-4 gap-1 mt-12 pt-12 border-t border-white/10">
+            <div className="p-6 border-r border-white/10 last:border-r-0">
+              <div className="text-[8px] text-white/20 uppercase font-black tracking-widest mb-2">Total Executions</div>
+              <div className="text-2xl font-black text-primary">1,248</div>
+            </div>
+            <div className="p-6 border-r border-white/10">
+              <div className="text-[8px] text-white/20 uppercase font-black tracking-widest mb-2">Success Rate</div>
+              <div className="text-2xl font-black text-green-500">94.2%</div>
+            </div>
+            <div className="p-6 border-r border-white/10">
+              <div className="text-[8px] text-white/20 uppercase font-black tracking-widest mb-2">Avg Response Time</div>
+              <div className="text-2xl font-black text-primary">2.4s</div>
+            </div>
+            <div className="p-6">
+              <div className="text-[8px] text-white/20 uppercase font-black tracking-widest mb-2">Token Usage</div>
+              <div className="text-2xl font-black text-primary">12.8K</div>
+            </div>
+          </div>
         </div>
 
         {/* Execution Timeline */}
@@ -276,7 +319,7 @@ export default function DashboardView() {
         {/* Lower Panel: Tabs */}
         <div className="border border-white/10 flex flex-col flex-1 min-h-[400px]">
           <div className="flex border-b border-white/10">
-            {(['logs', 'terminal', 'network'] as const).map(tab => (
+            {(['logs', 'terminal', 'network', 'agents'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -287,31 +330,109 @@ export default function DashboardView() {
               >
                 {tab === 'logs' && "System Logs"}
                 {tab === 'terminal' && "Terminal Out"}
-                {tab === 'network' && "Nodes"}
+                {tab === 'network' && "Network Nodes"}
+                {tab === 'agents' && "Agent Details"}
               </button>
             ))}
           </div>
-          <div className="p-8 flex-1 font-mono text-[11px] space-y-3 custom-scrollbar uppercase tracking-tight overflow-y-auto max-h-[300px]">
-            {logs.map((log, i) => (
-              <div key={i} className="flex gap-6 animate-in fade-in slide-in-from-left-4 duration-300 items-baseline opacity-60 hover:opacity-100 transition-opacity">
-                <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[{log.timestamp}]</span>
-                <span className={cn(
-                  "font-black w-20 shrink-0",
-                  log.level === 'info' && "text-white",
-                  log.level === 'debug' && "text-white/40 text-stroke",
-                  log.level === 'success' && "text-primary",
-                  log.level === 'warn' && "text-yellow-500",
-                  log.level === 'error' && "text-red-500",
-                  log.level === 'sys' && "text-white/30"
-                )}>
-                  {log.level}
-                </span>
-                <span className="text-white/80 flex-1">{log.message}</span>
+          
+          <div className="flex-1 overflow-hidden">
+            {activeTab === 'logs' && (
+              <div className="h-full">
+                <LogViewer 
+                  compact={true}
+                  autoRefresh={isAutoRefresh}
+                  showFilters={false}
+                  className="h-full border-0 rounded-none"
+                />
               </div>
-            ))}
-            {logs.length === 0 && (
-              <div className="text-center text-white/40 py-8">
-                No logs available
+            )}
+            
+            {activeTab === 'terminal' && (
+              <div className="p-8 flex-1 font-mono text-[11px] space-y-3 custom-scrollbar uppercase tracking-tight overflow-y-auto max-h-[300px]">
+                <div className="flex gap-6 items-baseline opacity-60 hover:opacity-100 transition-opacity">
+                  <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[14:32:45]</span>
+                  <span className="font-black w-20 shrink-0 text-primary">INFO</span>
+                  <span className="text-white/80 flex-1">Starting pipeline execution...</span>
+                </div>
+                <div className="flex gap-6 items-baseline opacity-60 hover:opacity-100 transition-opacity">
+                  <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[14:32:46]</span>
+                  <span className="font-black w-20 shrink-0 text-primary">INFO</span>
+                  <span className="text-white/80 flex-1">Orchestrator agent initialized project structure</span>
+                </div>
+                <div className="flex gap-6 items-baseline opacity-60 hover:opacity-100 transition-opacity">
+                  <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[14:32:47]</span>
+                  <span className="font-black w-20 shrink-0 text-green-500">SUCCESS</span>
+                  <span className="text-white/80 flex-1">Architect agent generated technical design</span>
+                </div>
+                <div className="flex gap-6 items-baseline opacity-60 hover:opacity-100 transition-opacity">
+                  <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[14:32:48]</span>
+                  <span className="font-black w-20 shrink-0 text-primary">INFO</span>
+                  <span className="text-white/80 flex-1">Frontend agent creating React components...</span>
+                </div>
+                <div className="flex gap-6 items-baseline opacity-60 hover:opacity-100 transition-opacity">
+                  <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[14:32:49]</span>
+                  <span className="font-black w-20 shrink-0 text-primary">INFO</span>
+                  <span className="text-white/80 flex-1">Backend agent generating API endpoints...</span>
+                </div>
+                <div className="flex gap-6 items-baseline opacity-60 hover:opacity-100 transition-opacity">
+                  <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[14:32:50]</span>
+                  <span className="font-black w-20 shrink-0 text-yellow-500">WARN</span>
+                  <span className="text-white/80 flex-1">QA agent detected potential performance issue</span>
+                </div>
+                <div className="flex gap-6 items-baseline opacity-60 hover:opacity-100 transition-opacity">
+                  <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[14:32:51]</span>
+                  <span className="font-black w-20 shrink-0 text-green-500">SUCCESS</span>
+                  <span className="text-white/80 flex-1">DevOps agent completed deployment configuration</span>
+                </div>
+                <div className="flex gap-6 items-baseline opacity-60 hover:opacity-100 transition-opacity">
+                  <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[14:32:52]</span>
+                  <span className="font-black w-20 shrink-0 text-primary">INFO</span>
+                  <span className="text-white/80 flex-1">Reviewer agent completed code review</span>
+                </div>
+                <div className="flex gap-6 items-baseline opacity-60 hover:opacity-100 transition-opacity">
+                  <span className="text-white/20 w-24 shrink-0 font-black tracking-widest">[14:32:53]</span>
+                  <span className="font-black w-20 shrink-0 text-green-500">SUCCESS</span>
+                  <span className="text-white/80 flex-1">Pipeline execution completed successfully!</span>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'network' && (
+              <div className="p-8">
+                <div className="text-center text-white/40 py-8">
+                  <div className="text-lg mb-2">Network Nodes View</div>
+                  <div className="text-sm">Visualization of agent communication network</div>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'agents' && (
+              <div className="p-8">
+                <div className="grid grid-cols-2 gap-4">
+                  {agents.map(agent => (
+                    <div key={agent.id} className="border border-white/10 p-4 hover:bg-white/5 transition-colors">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-2 h-2 rounded-full",
+                            agent.status === 'active' ? "bg-primary" : 
+                            agent.status === 'waiting' ? "bg-yellow-500" :
+                            agent.status === 'completed' ? "bg-green-500" :
+                            "bg-white/20"
+                          )} />
+                          <span className="text-sm font-black uppercase tracking-wider">{agent.name}</span>
+                        </div>
+                        <span className="text-[10px] text-white/40 uppercase tracking-widest">{agent.role}</span>
+                      </div>
+                      <div className="text-xs text-white/60 mb-2">{agent.currentTask || "Idle"}</div>
+                      <div className="flex items-center justify-between text-[10px] text-white/40">
+                        <span>Progress: {agent.progress}%</span>
+                        <span>Time: {agent.timeActive}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -407,40 +528,99 @@ interface AgentCardProps {
 function AgentCard({ agent }: AgentCardProps) {
   const Icon = agent.type === 'orchestrator' ? GitBranch : 
                agent.type === 'architect' ? Ruler : 
-               agent.type === 'backend' ? Terminal : Layout;
+               agent.type === 'backend' ? Terminal : 
+               agent.type === 'frontend' ? Layout :
+               agent.type === 'qa' ? CheckCircle2 : Brain;
   
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'text-primary';
+      case 'waiting': return 'text-yellow-500';
+      case 'completed': return 'text-green-500';
+      case 'error': return 'text-red-500';
+      default: return 'text-white/40';
+    }
+  };
+
+  const getStatusBgColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-primary/20 border-primary/30';
+      case 'waiting': return 'bg-yellow-500/20 border-yellow-500/30';
+      case 'completed': return 'bg-green-500/20 border-green-500/30';
+      case 'error': return 'bg-red-500/20 border-red-500/30';
+      default: return 'bg-white/5 border-white/10';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'ACTIVE';
+      case 'waiting': return 'WAITING';
+      case 'completed': return 'COMPLETED';
+      case 'error': return 'ERROR';
+      default: return 'IDLE';
+    }
+  };
+
   return (
     <div className={cn(
-      "p-8 transition-all duration-500 border-r border-white/10 last:border-r-0 hover:bg-white/[0.03]",
+      "p-8 transition-all duration-500 border-r border-white/10 last:border-r-0 hover:bg-white/[0.03] group relative",
       agent.status === 'idle' && "opacity-40 grayscale"
     )}>
-      <div className="flex justify-between items-start mb-10">
-        <div className="flex flex-col gap-1">
-          <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">{agent.role}</span>
-          <span className="text-lg font-black uppercase tracking-tighter">{agent.name}</span>
-        </div>
-        
+      {/* Status indicator */}
+      <div className="absolute top-4 right-4">
         <div className={cn(
           "w-3 h-3 rounded-none rotate-45 border transition-all",
-          agent.status === 'active' ? "bg-primary border-primary shadow-[0_0_15px_#FBDF24]" : "border-white/20"
+          agent.status === 'active' ? "bg-primary border-primary shadow-[0_0_15px_#FBDF24]" : 
+          agent.status === 'waiting' ? "bg-yellow-500 border-yellow-500" :
+          agent.status === 'completed' ? "bg-green-500 border-green-500" :
+          agent.status === 'error' ? "bg-red-500 border-red-500" :
+          "border-white/20"
         )} />
       </div>
 
+      <div className="flex justify-between items-start mb-10">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <Icon size={16} className={cn(
+              "transition-colors",
+              agent.status === 'active' ? "text-primary" : 
+              agent.status === 'waiting' ? "text-yellow-500" :
+              agent.status === 'completed' ? "text-green-500" :
+              agent.status === 'error' ? "text-red-500" :
+              "text-white/40"
+            )} />
+            <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">{agent.role}</span>
+          </div>
+          <span className="text-lg font-black uppercase tracking-tighter mt-2">{agent.name}</span>
+        </div>
+      </div>
+
       <div className="space-y-8">
+        {/* Status badge */}
+        <div className={cn(
+          "inline-flex items-center px-3 py-1 text-[8px] font-black uppercase tracking-widest border transition-all",
+          getStatusBgColor(agent.status),
+          getStatusColor(agent.status)
+        )}>
+          {getStatusText(agent.status)}
+        </div>
+
         <div className="flex flex-col gap-2">
           <span className="text-[8px] text-white/20 uppercase font-black tracking-widest">Active Task</span>
           <div className="text-[11px] font-black uppercase tracking-wide text-white/60 leading-tight line-clamp-2 h-8">
-            {agent.currentTask}
+            {agent.currentTask || "No active task"}
           </div>
         </div>
         
-        <div className="flex items-end justify-between">
+        <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col">
             <span className="text-[8px] text-white/20 uppercase font-black tracking-widest">Elapsed</span>
-            <span className="text-[10px] font-mono font-black text-primary">{agent.timeActive}</span>
+            <span className="text-[10px] font-mono font-black text-primary mt-1">{agent.timeActive || "00:00"}</span>
           </div>
-          <div className="text-2xl font-black tracking-tighter text-white/10 text-stroke">
-            {agent.progress}%
+          <div className="flex flex-col">
+            <span className="text-[8px] text-white/20 uppercase font-black tracking-widest">Progress</span>
+            <span className="text-[10px] font-mono font-black text-primary mt-1">{agent.progress}%</span>
           </div>
         </div>
         
@@ -448,8 +628,27 @@ function AgentCard({ agent }: AgentCardProps) {
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${agent.progress}%` }}
-            className="h-full bg-primary"
+            className={cn(
+              "h-full transition-all",
+              agent.status === 'active' ? "bg-primary" : 
+              agent.status === 'waiting' ? "bg-yellow-500" :
+              agent.status === 'completed' ? "bg-green-500" :
+              agent.status === 'error' ? "bg-red-500" :
+              "bg-white/20"
+            )}
           />
+        </div>
+
+        {/* Additional metrics */}
+        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/10">
+          <div className="flex flex-col">
+            <span className="text-[7px] text-white/20 uppercase font-black tracking-widest">Tasks</span>
+            <span className="text-[9px] font-mono font-black text-white/60 mt-1">12</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[7px] text-white/20 uppercase font-black tracking-widest">Success</span>
+            <span className="text-[9px] font-mono font-black text-green-500 mt-1">92%</span>
+          </div>
         </div>
       </div>
     </div>
