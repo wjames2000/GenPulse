@@ -1,0 +1,6 @@
+{
+  "servers": [],
+  "auto_start": true,
+  "tool_discovery_interval": 60,
+  "max_concurrent_calls": 10
+}
