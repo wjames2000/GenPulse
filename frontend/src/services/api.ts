@@ -1240,6 +1240,391 @@ class ApiService {
       console.error('Failed to send intervention:', error);
     }
   }
+
+  // ==================== 历史记录与回放 API ====================
+
+  async getHistoryRecords(query: any): Promise<[any[], number]> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      // 暂时返回模拟数据
+      return this.getMockHistoryRecords(query);
+    } catch (error) {
+      console.error('Failed to get history records:', error);
+      return [[], 0];
+    }
+  }
+
+  async getHistoryStatistics(): Promise<any> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      // 暂时返回模拟数据
+      return this.getMockHistoryStatistics();
+    } catch (error) {
+      console.error('Failed to get history statistics:', error);
+      return {};
+    }
+  }
+
+  async deleteHistoryRecord(recordId: string): Promise<boolean> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      console.log('Deleting history record:', recordId);
+      return true;
+    } catch (error) {
+      console.error('Failed to delete history record:', error);
+      return false;
+    }
+  }
+
+  async startReplay(recordId: string, speed: number = 1.0): Promise<any> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      console.log('Starting replay:', recordId, speed);
+      return this.getMockReplayState(recordId);
+    } catch (error) {
+      console.error('Failed to start replay:', error);
+      throw error;
+    }
+  }
+
+  async controlReplay(replayId: string, action: string, params?: any): Promise<any> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      console.log('Controlling replay:', replayId, action, params);
+      return this.getMockReplayState(replayId);
+    } catch (error) {
+      console.error('Failed to control replay:', error);
+      throw error;
+    }
+  }
+
+  async getReplayState(replayId: string): Promise<any> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      // 暂时返回模拟数据
+      return this.getMockReplayState(replayId);
+    } catch (error) {
+      console.error('Failed to get replay state:', error);
+      throw error;
+    }
+  }
+
+  async getReplayData(replayId: string, fromIndex: number, limit: number): Promise<any[]> {
+    try {
+      // 注意：这里需要等待Wails生成新的绑定
+      // 暂时返回模拟数据
+      return this.getMockReplayData(fromIndex, limit);
+    } catch (error) {
+      console.error('Failed to get replay data:', error);
+      return [];
+    }
+  }
+
+  subscribeToReplayEvents(replayId: string, callback: (event: string, data: any) => void): () => void {
+    // 模拟事件订阅
+    console.log('Subscribing to replay events:', replayId);
+    
+    const interval = setInterval(() => {
+      const state = this.getMockReplayState(replayId);
+      if (state.progress < 100) {
+        state.progress += 1;
+        state.current_span_index = Math.floor(state.progress / 100 * state.total_spans);
+        callback('replay:progress', { state });
+      } else {
+        state.status = 'completed';
+        callback('replay:ended', { state });
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      console.log('Unsubscribed from replay events:', replayId);
+    };
+  }
+
+  // ==================== 历史记录模拟数据 ====================
+
+  private getMockHistoryRecords(query: any): [any[], number] {
+    const now = new Date();
+    const records = [
+      {
+        id: 'exec-001',
+        trace_id: 'trace-001',
+        pipeline_id: 'pipeline-001',
+        name: '用户认证系统开发',
+        description: '完整的JWT认证系统实现，包含前端React组件和后端Go API',
+        status: 'completed',
+        start_time: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        end_time: new Date(now.getTime() - 1.5 * 60 * 60 * 1000).toISOString(),
+        duration: 30 * 60 * 1000, // 30分钟
+        agent_count: 4,
+        tool_call_count: 42,
+        token_usage: 12500,
+        cost_estimate: 0.85,
+        metadata: {
+          primary_agent: 'Orchestrator',
+          project_type: 'web',
+          framework: 'react+go'
+        },
+        tags: ['production', 'authentication', 'security'],
+        created_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(now.getTime() - 1.5 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'exec-002',
+        trace_id: 'trace-002',
+        pipeline_id: 'pipeline-002',
+        name: '电商产品页面优化',
+        description: '优化产品展示页面性能，添加图片懒加载和缓存策略',
+        status: 'completed',
+        start_time: new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString(),
+        end_time: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+        duration: 60 * 60 * 1000, // 1小时
+        agent_count: 3,
+        tool_call_count: 28,
+        token_usage: 8500,
+        cost_estimate: 0.55,
+        metadata: {
+          primary_agent: 'Frontend Dev',
+          project_type: 'ecommerce',
+          framework: 'react'
+        },
+        tags: ['optimization', 'performance', 'frontend'],
+        created_at: new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'exec-003',
+        trace_id: 'trace-003',
+        pipeline_id: 'pipeline-003',
+        name: '数据库迁移脚本生成',
+        description: '从MySQL迁移到PostgreSQL的自动化脚本生成',
+        status: 'failed',
+        start_time: new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString(),
+        end_time: new Date(now.getTime() - 7.5 * 60 * 60 * 1000).toISOString(),
+        duration: 30 * 60 * 1000, // 30分钟
+        agent_count: 2,
+        tool_call_count: 15,
+        token_usage: 5200,
+        cost_estimate: 0.35,
+        metadata: {
+          primary_agent: 'Backend Dev',
+          project_type: 'database',
+          error: '数据类型转换失败'
+        },
+        tags: ['database', 'migration', 'failed'],
+        created_at: new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(now.getTime() - 7.5 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'exec-004',
+        trace_id: 'trace-004',
+        pipeline_id: 'pipeline-004',
+        name: 'API文档自动生成',
+        description: '基于现有Go代码生成OpenAPI 3.0规范文档',
+        status: 'running',
+        start_time: new Date(now.getTime() - 0.5 * 60 * 60 * 1000).toISOString(),
+        end_time: undefined,
+        duration: undefined,
+        agent_count: 2,
+        tool_call_count: 8,
+        token_usage: 3200,
+        cost_estimate: 0.22,
+        metadata: {
+          primary_agent: 'Backend Dev',
+          project_type: 'documentation'
+        },
+        tags: ['documentation', 'api', 'automation'],
+        created_at: new Date(now.getTime() - 0.5 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(now.getTime() - 0.5 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'exec-005',
+        trace_id: 'trace-005',
+        pipeline_id: 'pipeline-005',
+        name: '移动端响应式布局',
+        description: '为现有Web应用添加移动端适配',
+        status: 'cancelled',
+        start_time: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+        end_time: new Date(now.getTime() - 11.5 * 60 * 60 * 1000).toISOString(),
+        duration: 30 * 60 * 1000, // 30分钟
+        agent_count: 1,
+        tool_call_count: 5,
+        token_usage: 1800,
+        cost_estimate: 0.12,
+        metadata: {
+          primary_agent: 'Frontend Dev',
+          project_type: 'mobile',
+          reason: '需求变更'
+        },
+        tags: ['mobile', 'responsive', 'cancelled'],
+        created_at: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(now.getTime() - 11.5 * 60 * 60 * 1000).toISOString()
+      }
+    ];
+
+    // 简单的查询过滤
+    let filtered = records;
+    
+    if (query.searchText) {
+      const search = query.searchText.toLowerCase();
+      filtered = filtered.filter(r => 
+        r.name.toLowerCase().includes(search) || 
+        r.description?.toLowerCase().includes(search)
+      );
+    }
+    
+    if (query.statuses && query.statuses.length > 0) {
+      filtered = filtered.filter(r => query.statuses.includes(r.status));
+    }
+    
+    if (query.tags && query.tags.length > 0) {
+      filtered = filtered.filter(r => 
+        r.tags?.some(tag => query.tags.includes(tag))
+      );
+    }
+
+    // 排序
+    filtered.sort((a, b) => {
+      const order = query.sortOrder === 'asc' ? 1 : -1;
+      switch (query.sortBy) {
+        case 'start_time':
+          return (new Date(a.start_time).getTime() - new Date(b.start_time).getTime()) * order;
+        case 'end_time':
+          const aEnd = a.end_time ? new Date(a.end_time).getTime() : 0;
+          const bEnd = b.end_time ? new Date(b.end_time).getTime() : 0;
+          return (aEnd - bEnd) * order;
+        case 'duration':
+          return ((a.duration || 0) - (b.duration || 0)) * order;
+        case 'agent_count':
+          return (a.agent_count - b.agent_count) * order;
+        case 'token_usage':
+          return (a.token_usage - b.token_usage) * order;
+        case 'cost_estimate':
+          return ((a.cost_estimate || 0) - (b.cost_estimate || 0)) * order;
+        default:
+          return (new Date(a.start_time).getTime() - new Date(b.start_time).getTime()) * order;
+      }
+    });
+
+    const total = filtered.length;
+    const start = query.offset || 0;
+    const limit = query.limit || 20;
+    const paginated = filtered.slice(start, start + limit);
+
+    return [paginated, total];
+  }
+
+  private getMockHistoryStatistics(): any {
+    return {
+      total_records: 5,
+      completed_records: 2,
+      failed_records: 1,
+      success_rate: 40.0,
+      total_duration: '2.5h',
+      avg_duration: 30 * 60 * 1000, // 30分钟
+      total_token_usage: 31200,
+      avg_token_usage: 6240,
+      total_tool_calls: 98,
+      avg_tool_calls: 19.6,
+      total_cost: 2.09,
+      avg_cost: 0.418,
+      agent_statistics: {
+        'Orchestrator': {
+          count: 1,
+          total_duration: 30 * 60 * 1000,
+          success_count: 1,
+          avg_duration: 30 * 60 * 1000,
+          success_rate: 100.0
+        },
+        'Frontend Dev': {
+          count: 2,
+          total_duration: 90 * 60 * 1000,
+          success_count: 1,
+          avg_duration: 45 * 60 * 1000,
+          success_rate: 50.0
+        },
+        'Backend Dev': {
+          count: 2,
+          total_duration: 60 * 60 * 1000,
+          success_count: 1,
+          avg_duration: 30 * 60 * 1000,
+          success_rate: 50.0
+        }
+      }
+    };
+  }
+
+  private getMockReplayState(replayId: string): any {
+    const now = new Date();
+    return {
+      record_id: replayId,
+      trace_id: 'trace-001',
+      status: 'playing',
+      current_time: new Date(now.getTime() - 1.8 * 60 * 60 * 1000).toISOString(),
+      start_time: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+      end_time: new Date(now.getTime() - 1.5 * 60 * 60 * 1000).toISOString(),
+      playback_speed: 1.0,
+      current_span_index: 15,
+      total_spans: 25,
+      progress: 60.0,
+      metadata: {
+        record_name: '用户认证系统开发',
+        record_status: 'completed'
+      }
+    };
+  }
+
+  private getMockReplayData(fromIndex: number, limit: number): any[] {
+    const spans = [];
+    const now = new Date();
+    
+    for (let i = fromIndex; i < fromIndex + limit && i < 25; i++) {
+      const startTime = new Date(now.getTime() - (2 - i * 0.02) * 60 * 60 * 1000);
+      const endTime = new Date(startTime.getTime() + 60 * 1000); // 1分钟
+      
+      spans.push({
+        id: `span-${i}`,
+        trace_id: 'trace-001',
+        parent_id: i > 0 ? `span-${Math.floor(i/2)}` : undefined,
+        name: i % 5 === 0 ? 'Agent Execution' : 'Tool Invocation',
+        kind: i % 5 === 0 ? 'INTERNAL' : 'CLIENT',
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        duration: 60 * 1000,
+        attributes: {
+          'agent.name': i % 5 === 0 ? (i < 5 ? 'Orchestrator' : i < 10 ? 'Architect' : i < 15 ? 'Backend Dev' : 'Frontend Dev') : undefined,
+          'tool.name': i % 5 !== 0 ? `tool-${i % 3}` : undefined,
+          'task.id': `task-${i}`,
+          'iteration': i
+        },
+        events: i % 3 === 0 ? [
+          {
+            name: 'task_started',
+            timestamp: startTime.toISOString(),
+            attributes: { 'task.type': 'code_generation' }
+          },
+          {
+            name: 'task_completed',
+            timestamp: endTime.toISOString(),
+            attributes: { 'result': 'success' }
+          }
+        ] : [],
+        status: i === 12 ? 'ERROR' : 'OK',
+        status_message: i === 12 ? 'Failed to generate code: timeout' : undefined,
+        resource: {
+          'service.name': 'genpulse',
+          'service.version': '1.0.0'
+        },
+        agent_name: i % 5 === 0 ? (i < 5 ? 'Orchestrator' : i < 10 ? 'Architect' : i < 15 ? 'Backend Dev' : 'Frontend Dev') : undefined,
+        tool_name: i % 5 !== 0 ? `tool-${i % 3}` : undefined,
+        pipeline_id: 'pipeline-001'
+      });
+    }
+    
+    return spans;
+  }
 }
 
 export const api = new ApiService();

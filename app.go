@@ -9,21 +9,40 @@ import (
 	"GenPulse/internal/genkit"
 	"GenPulse/internal/mcp/client"
 	"GenPulse/internal/mcp/host"
+	"GenPulse/internal/monitoring/history"
 	"GenPulse/internal/services"
 )
 
 // App struct
 type App struct {
-	ctx           context.Context
-	baseService   *services.BaseService
-	genkitManager *genkit.GenkitManager
+	ctx            context.Context
+	baseService    *services.BaseService
+	genkitManager  *genkit.GenkitManager
+	historyService *history.HistoryService
+	historyBridge  *history.WailsBridge
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
+	// 创建历史记录服务
+	historyService, err := history.NewHistoryService(nil) // 暂时传入nil，后续需要传入TraceStore
+	if err != nil {
+		// 如果历史记录服务创建失败，记录错误但继续启动
+		fmt.Printf("警告: 历史记录服务初始化失败: %v\n", err)
+		historyService = nil
+	}
+
+	// 创建Wails桥接器
+	var historyBridge *history.WailsBridge
+	if historyService != nil {
+		historyBridge = history.NewWailsBridge(historyService)
+	}
+
 	return &App{
-		baseService:   services.NewBaseService(),
-		genkitManager: genkit.NewGenkitManager(),
+		baseService:    services.NewBaseService(),
+		genkitManager:  genkit.NewGenkitManager(),
+		historyService: historyService,
+		historyBridge:  historyBridge,
 	}
 }
 
@@ -43,6 +62,9 @@ func (a *App) startup(ctx context.Context) {
 	} else {
 		a.baseService.LogMessage("info", "Genkit运行时初始化完成")
 	}
+
+	// 设置历史记录桥接器的上下文
+	a.historyBridge.SetContext(ctx)
 }
 
 // Greet returns a greeting for the given name
@@ -1418,4 +1440,234 @@ func (a *App) TestMCPServerConnection(serverID string) (map[string]interface{}, 
 		"success": true,
 		"message": "连接测试成功（模拟）",
 	}, nil
+}
+
+// ==================== 历史记录与回放 API ====================
+
+// CreateHistoryRecord 创建历史记录
+func (a *App) CreateHistoryRecord(name, description, pipelineID string, metadata map[string]interface{}, tags []string) (map[string]interface{}, error) {
+	record, err := a.historyBridge.CreateRecord(name, description, pipelineID, metadata, tags)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create history record: %w", err)
+	}
+
+	// 转换为前端格式
+	return map[string]interface{}{
+		"id":              record.ID,
+		"trace_id":        record.TraceID,
+		"pipeline_id":     record.PipelineID,
+		"name":            record.Name,
+		"description":     record.Description,
+		"status":          record.Status,
+		"start_time":      record.StartTime.Format(time.RFC3339),
+		"end_time":        record.EndTime.Format(time.RFC3339),
+		"duration":        record.Duration.Milliseconds(),
+		"agent_count":     record.AgentCount,
+		"tool_call_count": record.ToolCallCount,
+		"token_usage":     record.TokenUsage,
+		"cost_estimate":   record.CostEstimate,
+		"metadata":        record.Metadata,
+		"tags":            record.Tags,
+		"created_at":      record.CreatedAt.Format(time.RFC3339),
+		"updated_at":      record.UpdatedAt.Format(time.RFC3339),
+	}, nil
+}
+
+// UpdateHistoryRecord 更新历史记录
+func (a *App) UpdateHistoryRecord(id string, updates map[string]interface{}) (map[string]interface{}, error) {
+	record, err := a.historyBridge.UpdateRecord(id, updates)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update history record: %w", err)
+	}
+
+	// 转换为前端格式
+	return map[string]interface{}{
+		"id":              record.ID,
+		"trace_id":        record.TraceID,
+		"pipeline_id":     record.PipelineID,
+		"name":            record.Name,
+		"description":     record.Description,
+		"status":          record.Status,
+		"start_time":      record.StartTime.Format(time.RFC3339),
+		"end_time":        record.EndTime.Format(time.RFC3339),
+		"duration":        record.Duration.Milliseconds(),
+		"agent_count":     record.AgentCount,
+		"tool_call_count": record.ToolCallCount,
+		"token_usage":     record.TokenUsage,
+		"cost_estimate":   record.CostEstimate,
+		"metadata":        record.Metadata,
+		"tags":            record.Tags,
+		"created_at":      record.CreatedAt.Format(time.RFC3339),
+		"updated_at":      record.UpdatedAt.Format(time.RFC3339),
+	}, nil
+}
+
+// GetHistoryRecord 获取历史记录
+func (a *App) GetHistoryRecord(id string) (map[string]interface{}, error) {
+	record, err := a.historyBridge.GetRecord(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get history record: %w", err)
+	}
+
+	// 转换为前端格式
+	return map[string]interface{}{
+		"id":              record.ID,
+		"trace_id":        record.TraceID,
+		"pipeline_id":     record.PipelineID,
+		"name":            record.Name,
+		"description":     record.Description,
+		"status":          record.Status,
+		"start_time":      record.StartTime.Format(time.RFC3339),
+		"end_time":        record.EndTime.Format(time.RFC3339),
+		"duration":        record.Duration.Milliseconds(),
+		"agent_count":     record.AgentCount,
+		"tool_call_count": record.ToolCallCount,
+		"token_usage":     record.TokenUsage,
+		"cost_estimate":   record.CostEstimate,
+		"metadata":        record.Metadata,
+		"tags":            record.Tags,
+		"created_at":      record.CreatedAt.Format(time.RFC3339),
+		"updated_at":      record.UpdatedAt.Format(time.RFC3339),
+	}, nil
+}
+
+// QueryHistoryRecords 查询历史记录
+func (a *App) QueryHistoryRecords(params map[string]interface{}) ([]map[string]interface{}, int, error) {
+	records, total, err := a.historyBridge.QueryRecords(params)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query history records: %w", err)
+	}
+
+	// 转换为前端格式
+	result := make([]map[string]interface{}, len(records))
+	for i, record := range records {
+		result[i] = map[string]interface{}{
+			"id":              record.ID,
+			"trace_id":        record.TraceID,
+			"pipeline_id":     record.PipelineID,
+			"name":            record.Name,
+			"description":     record.Description,
+			"status":          record.Status,
+			"start_time":      record.StartTime.Format(time.RFC3339),
+			"end_time":        record.EndTime.Format(time.RFC3339),
+			"duration":        record.Duration.Milliseconds(),
+			"agent_count":     record.AgentCount,
+			"tool_call_count": record.ToolCallCount,
+			"token_usage":     record.TokenUsage,
+			"cost_estimate":   record.CostEstimate,
+			"metadata":        record.Metadata,
+			"tags":            record.Tags,
+			"created_at":      record.CreatedAt.Format(time.RFC3339),
+			"updated_at":      record.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
+	return result, total, nil
+}
+
+// DeleteHistoryRecord 删除历史记录
+func (a *App) DeleteHistoryRecord(id string) error {
+	return a.historyBridge.DeleteRecord(id)
+}
+
+// GetHistoryStatistics 获取历史记录统计
+func (a *App) GetHistoryStatistics(startTimeStr, endTimeStr string) (map[string]interface{}, error) {
+	return a.historyBridge.GetStatistics(startTimeStr, endTimeStr)
+}
+
+// StartReplay 开始回放
+func (a *App) StartReplay(recordID string, speed float64) (map[string]interface{}, error) {
+	state, err := a.historyBridge.StartReplay(recordID, speed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start replay: %w", err)
+	}
+
+	// 转换为前端格式
+	return map[string]interface{}{
+		"record_id":          state.RecordID,
+		"trace_id":           state.TraceID,
+		"status":             state.Status,
+		"current_time":       state.CurrentTime.Format(time.RFC3339),
+		"start_time":         state.StartTime.Format(time.RFC3339),
+		"end_time":           state.EndTime.Format(time.RFC3339),
+		"playback_speed":     state.PlaybackSpeed,
+		"current_span_index": state.CurrentSpanIndex,
+		"total_spans":        state.TotalSpans,
+		"progress":           state.Progress,
+		"metadata":           state.Metadata,
+	}, nil
+}
+
+// ControlReplay 控制回放
+func (a *App) ControlReplay(replayID, action string, params map[string]interface{}) (map[string]interface{}, error) {
+	state, err := a.historyBridge.ControlReplay(replayID, action, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to control replay: %w", err)
+	}
+
+	// 转换为前端格式
+	return map[string]interface{}{
+		"record_id":          state.RecordID,
+		"trace_id":           state.TraceID,
+		"status":             state.Status,
+		"current_time":       state.CurrentTime.Format(time.RFC3339),
+		"start_time":         state.StartTime.Format(time.RFC3339),
+		"end_time":           state.EndTime.Format(time.RFC3339),
+		"playback_speed":     state.PlaybackSpeed,
+		"current_span_index": state.CurrentSpanIndex,
+		"total_spans":        state.TotalSpans,
+		"progress":           state.Progress,
+		"metadata":           state.Metadata,
+	}, nil
+}
+
+// GetReplayState 获取回放状态
+func (a *App) GetReplayState(replayID string) (map[string]interface{}, error) {
+	state, err := a.historyBridge.GetReplayState(replayID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get replay state: %w", err)
+	}
+
+	// 转换为前端格式
+	return map[string]interface{}{
+		"record_id":          state.RecordID,
+		"trace_id":           state.TraceID,
+		"status":             state.Status,
+		"current_time":       state.CurrentTime.Format(time.RFC3339),
+		"start_time":         state.StartTime.Format(time.RFC3339),
+		"end_time":           state.EndTime.Format(time.RFC3339),
+		"playback_speed":     state.PlaybackSpeed,
+		"current_span_index": state.CurrentSpanIndex,
+		"total_spans":        state.TotalSpans,
+		"progress":           state.Progress,
+		"metadata":           state.Metadata,
+	}, nil
+}
+
+// GetReplayData 获取回放数据
+func (a *App) GetReplayData(replayID string, fromIndex, limit int) ([]map[string]interface{}, error) {
+	data, err := a.historyBridge.GetReplayData(replayID, fromIndex, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get replay data: %w", err)
+	}
+
+	// 转换为前端格式
+	result := make([]map[string]interface{}, len(data))
+	for i, item := range data {
+		if span, ok := item.(map[string]interface{}); ok {
+			result[i] = span
+		} else {
+			// 如果是其他类型，直接转换
+			result[i] = map[string]interface{}{
+				"data": item,
+			}
+		}
+	}
+
+	return result, nil
+}
+
+// SubscribeToReplayEvents 订阅回放事件
+func (a *App) SubscribeToReplayEvents(replayID string) error {
+	return a.historyBridge.SubscribeToReplayEvents(replayID)
 }

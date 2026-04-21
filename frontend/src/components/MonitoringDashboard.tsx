@@ -62,7 +62,8 @@ import {
   Tag,
   Hash,
   List,
-  Bell
+  Bell,
+  History
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
@@ -76,9 +77,12 @@ import TerminalOutputPanel from './monitoring/TerminalOutputPanel';
 import FileDiffPreview from './monitoring/FileDiffPreview';
 import CostDashboard from './monitoring/CostDashboard';
 import EvolutionMonitor from './monitoring/EvolutionMonitor';
+import HistoryList from './monitoring/HistoryList';
+import ReplayPlayer from './monitoring/ReplayPlayer';
 
 export default function MonitoringDashboard() {
-  const [activeView, setActiveView] = useState<'overview' | 'agents' | 'timeline' | 'thoughts' | 'tools' | 'terminal' | 'files' | 'cost' | 'evolution'>('overview');
+  const [activeView, setActiveView] = useState<'overview' | 'agents' | 'timeline' | 'thoughts' | 'tools' | 'terminal' | 'files' | 'cost' | 'evolution' | 'history'>('overview');
+  const [activeReplay, setActiveReplay] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
   const [pipelineStatus, setPipelineStatus] = useState<'idle' | 'active' | 'completed' | 'error'>('idle');
@@ -213,6 +217,15 @@ export default function MonitoringDashboard() {
   }, [isAutoRefresh]);
 
   const renderActiveView = () => {
+    if (activeReplay) {
+      return (
+        <ReplayPlayer 
+          recordId={activeReplay} 
+          onClose={() => setActiveReplay(null)} 
+        />
+      );
+    }
+
     switch (activeView) {
       case 'overview':
         return (
@@ -252,6 +265,8 @@ export default function MonitoringDashboard() {
         return <CostDashboard metrics={costMetrics} />;
       case 'evolution':
         return <EvolutionMonitor events={evolutionEvents} />;
+      case 'history':
+        return <HistoryList />;
       default:
         return null;
     }
@@ -377,7 +392,8 @@ export default function MonitoringDashboard() {
               { id: 'terminal', label: 'Terminal', icon: <Terminal size={16} /> },
               { id: 'files', label: 'Files', icon: <FileText size={16} /> },
               { id: 'cost', label: 'Cost', icon: <DollarSign size={16} /> },
-              { id: 'evolution', label: 'Evolution', icon: <TrendingUp size={16} /> }
+              { id: 'evolution', label: 'Evolution', icon: <TrendingUp size={16} /> },
+              { id: 'history', label: 'History', icon: <History size={16} /> }
             ].map((tab) => (
               <button
                 key={tab.id}
