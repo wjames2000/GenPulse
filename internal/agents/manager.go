@@ -70,53 +70,276 @@ func (am *AgentManager) Initialize() error {
 		utils.Warn("部分Agent初始化失败: %v", initErrors)
 	}
 
+	// 将Agent注册为Tool
+	if err := am.registerAgentsAsTools(); err != nil {
+		utils.Warn("将Agent注册为Tool失败: %v", err)
+	}
+
 	am.initialized = true
 	utils.Info("Agent管理器初始化完成，注册Agent数量: %d", len(am.agents))
 
 	return nil
 }
 
+// registerAgentsAsTools 将Agent注册为Tool
+func (am *AgentManager) registerAgentsAsTools() error {
+	am.mutex.RLock()
+	defer am.mutex.RUnlock()
+
+	var registerErrors []string
+	for agentID, agent := range am.agents {
+		// 创建AgentTool
+		agentTool, err := NewAgentTool(agent)
+		if err != nil {
+			registerErrors = append(registerErrors, fmt.Sprintf("%s: %v", agentID, err))
+			continue
+		}
+
+		// 注册到ToolRegistry
+		if err := am.toolRegistry.RegisterTool(agentTool); err != nil {
+			registerErrors = append(registerErrors, fmt.Sprintf("%s: %v", agentID, err))
+			continue
+		}
+
+		utils.Info("已将Agent注册为Tool: %s -> %s", agent.GetConfig().Name, agentTool.GetDefinition().ID)
+	}
+
+	if len(registerErrors) > 0 {
+		return fmt.Errorf("部分Agent注册为Tool失败: %v", registerErrors)
+	}
+
+	return nil
+}
+
 // createDefaultAgents 创建默认Agent
 func (am *AgentManager) createDefaultAgents() error {
-	// 创建全栈开发Agent
-	fullstackConfig := AgentConfig{
-		ID:          "fullstack_dev_001",
-		Name:        "全栈开发工程师",
-		Role:        RoleFullStackDev,
-		Description: "全栈开发工程师，能够处理前后端开发任务",
-		ModelConfig: models.ModelConfig{
-			Type:     models.ModelTypeGemini,
-			Name:     "gemini-1.5-pro",
-			Provider: "google",
+	// 所有默认Agent配置
+	defaultAgents := []AgentConfig{
+		// 全栈开发Agent
+		{
+			ID:          "fullstack_dev_001",
+			Name:        "全栈开发工程师",
+			Role:        RoleFullStackDev,
+			Description: "全栈开发工程师，能够处理前后端开发任务",
+			ModelConfig: models.ModelConfig{
+				Type:     models.ModelTypeGemini,
+				Name:     "gemini-1.5-pro",
+				Provider: "google",
+			},
+			Capabilities: []AgentCapability{
+				CapabilityCodeGeneration,
+				CapabilityFileOperation,
+				CapabilityGitOperation,
+				CapabilityShellExecution,
+				CapabilityProjectSetup,
+			},
+			Tools: []string{
+				"fs_tool",
+				"git_tool",
+				"shell_tool",
+				"project_tool",
+			},
+			MaxRetries: 3,
+			Timeout:    5 * time.Minute,
+			Enabled:    true,
 		},
-		Capabilities: []AgentCapability{
-			CapabilityCodeGeneration,
-			CapabilityFileOperation,
-			CapabilityGitOperation,
-			CapabilityShellExecution,
-			CapabilityProjectSetup,
+		// 编排器Agent
+		{
+			ID:          "orchestrator_001",
+			Name:        "项目编排器",
+			Role:        RoleOrchestrator,
+			Description: "项目编排器，负责任务分解、执行计划生成和Agent调度",
+			ModelConfig: models.ModelConfig{
+				Type:     models.ModelTypeGemini,
+				Name:     "gemini-1.5-pro",
+				Provider: "google",
+			},
+			Capabilities: []AgentCapability{
+				CapabilityPlanning,
+			},
+			Tools: []string{
+				"project_tool",
+			},
+			MaxRetries: 3,
+			Timeout:    5 * time.Minute,
+			Enabled:    true,
 		},
-		Tools: []string{
-			"fs_tool",
-			"git_tool",
-			"shell_tool",
-			"project_tool",
+		// 产品经理Agent
+		{
+			ID:          "product_manager_001",
+			Name:        "产品经理",
+			Role:        RoleProductManager,
+			Description: "产品经理，负责需求分析、PRD文档生成和产品规划",
+			ModelConfig: models.ModelConfig{
+				Type:     models.ModelTypeGemini,
+				Name:     "gemini-1.5-pro",
+				Provider: "google",
+			},
+			Capabilities: []AgentCapability{
+				CapabilityPlanning,
+			},
+			Tools: []string{
+				"fs_tool",
+				"project_tool",
+			},
+			MaxRetries: 3,
+			Timeout:    5 * time.Minute,
+			Enabled:    true,
 		},
-		MaxRetries: 3,
-		Timeout:    5 * time.Minute,
-		Enabled:    true,
+		// 架构师Agent
+		{
+			ID:          "architect_001",
+			Name:        "技术架构师",
+			Role:        RoleArchitect,
+			Description: "技术架构师，负责技术架构设计、技术方案输出和系统设计",
+			ModelConfig: models.ModelConfig{
+				Type:     models.ModelTypeGemini,
+				Name:     "gemini-1.5-pro",
+				Provider: "google",
+			},
+			Capabilities: []AgentCapability{
+				CapabilityPlanning,
+				CapabilityCodeGeneration,
+			},
+			Tools: []string{
+				"fs_tool",
+				"project_tool",
+			},
+			MaxRetries: 3,
+			Timeout:    5 * time.Minute,
+			Enabled:    true,
+		},
+		// 前端开发Agent
+		{
+			ID:          "frontend_dev_001",
+			Name:        "前端开发工程师",
+			Role:        RoleFrontendDev,
+			Description: "前端开发工程师，负责React/Vue组件开发和前端界面实现",
+			ModelConfig: models.ModelConfig{
+				Type:     models.ModelTypeGemini,
+				Name:     "gemini-1.5-pro",
+				Provider: "google",
+			},
+			Capabilities: []AgentCapability{
+				CapabilityCodeGeneration,
+				CapabilityFileOperation,
+			},
+			Tools: []string{
+				"fs_tool",
+				"project_tool",
+			},
+			MaxRetries: 3,
+			Timeout:    5 * time.Minute,
+			Enabled:    true,
+		},
+		// 后端开发Agent
+		{
+			ID:          "backend_dev_001",
+			Name:        "后端开发工程师",
+			Role:        RoleBackendDev,
+			Description: "后端开发工程师，负责后端API、数据库代码生成和业务逻辑实现",
+			ModelConfig: models.ModelConfig{
+				Type:     models.ModelTypeGemini,
+				Name:     "gemini-1.5-pro",
+				Provider: "google",
+			},
+			Capabilities: []AgentCapability{
+				CapabilityCodeGeneration,
+				CapabilityFileOperation,
+			},
+			Tools: []string{
+				"fs_tool",
+				"project_tool",
+			},
+			MaxRetries: 3,
+			Timeout:    5 * time.Minute,
+			Enabled:    true,
+		},
+		// QA工程师Agent
+		{
+			ID:          "qa_engineer_001",
+			Name:        "QA工程师",
+			Role:        RoleQAEngineer,
+			Description: "QA工程师，负责测试用例生成与执行、质量保证",
+			ModelConfig: models.ModelConfig{
+				Type:     models.ModelTypeGemini,
+				Name:     "gemini-1.5-pro",
+				Provider: "google",
+			},
+			Capabilities: []AgentCapability{
+				CapabilityTesting,
+			},
+			Tools: []string{
+				"fs_tool",
+				"shell_tool",
+				"project_tool",
+			},
+			MaxRetries: 3,
+			Timeout:    5 * time.Minute,
+			Enabled:    true,
+		},
+		// DevOps工程师Agent
+		{
+			ID:          "devops_engineer_001",
+			Name:        "DevOps工程师",
+			Role:        RoleDevOps,
+			Description: "DevOps工程师，负责项目构建、启动、部署验证和运维",
+			ModelConfig: models.ModelConfig{
+				Type:     models.ModelTypeGemini,
+				Name:     "gemini-1.5-pro",
+				Provider: "google",
+			},
+			Capabilities: []AgentCapability{
+				CapabilityShellExecution,
+				CapabilityProjectSetup,
+			},
+			Tools: []string{
+				"shell_tool",
+				"project_tool",
+			},
+			MaxRetries: 3,
+			Timeout:    5 * time.Minute,
+			Enabled:    true,
+		},
+		// 代码审查员Agent
+		{
+			ID:          "reviewer_001",
+			Name:        "代码审查员",
+			Role:        RoleReviewer,
+			Description: "代码审查员，负责代码审查、安全扫描和质量检查",
+			ModelConfig: models.ModelConfig{
+				Type:     models.ModelTypeGemini,
+				Name:     "gemini-1.5-pro",
+				Provider: "google",
+			},
+			Capabilities: []AgentCapability{
+				CapabilityReview,
+			},
+			Tools: []string{
+				"fs_tool",
+				"project_tool",
+			},
+			MaxRetries: 3,
+			Timeout:    5 * time.Minute,
+			Enabled:    true,
+		},
 	}
 
-	fullstackAgent, err := NewFullstackDeveloperAgent(fullstackConfig, am.modelAdapter, am.toolRegistry, am.flowEngine)
-	if err != nil {
-		return fmt.Errorf("failed to create fullstack agent: %w", err)
-	}
+	// 创建所有默认Agent
+	for _, config := range defaultAgents {
+		agent, err := am.CreateAgentFromConfig(config)
+		if err != nil {
+			utils.Warn("创建Agent %s 失败: %v", config.Name, err)
+			continue
+		}
 
-	if err := am.RegisterAgent(fullstackAgent); err != nil {
-		return fmt.Errorf("failed to register fullstack agent: %w", err)
-	}
+		if err := am.RegisterAgent(agent); err != nil {
+			utils.Warn("注册Agent %s 失败: %v", config.Name, err)
+			continue
+		}
 
-	utils.Info("已创建默认全栈开发Agent: %s", fullstackConfig.Name)
+		utils.Info("已创建默认Agent: %s (%s)", config.Name, config.Role)
+	}
 
 	return nil
 }
@@ -139,6 +362,30 @@ func (am *AgentManager) RegisterAgent(agent Agent) error {
 	am.agents[agentID] = agent
 	utils.Info("注册Agent: %s (%s)", agent.GetConfig().Name, agentID)
 
+	// 如果管理器已初始化，将Agent注册为Tool
+	if am.initialized && am.toolRegistry != nil {
+		if err := am.registerAgentAsTool(agent); err != nil {
+			utils.Warn("注册Agent为Tool失败: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// registerAgentAsTool 将单个Agent注册为Tool
+func (am *AgentManager) registerAgentAsTool(agent Agent) error {
+	// 创建AgentTool
+	agentTool, err := NewAgentTool(agent)
+	if err != nil {
+		return fmt.Errorf("创建AgentTool失败: %w", err)
+	}
+
+	// 注册到ToolRegistry
+	if err := am.toolRegistry.RegisterTool(agentTool); err != nil {
+		return fmt.Errorf("注册到ToolRegistry失败: %w", err)
+	}
+
+	utils.Info("已将Agent注册为Tool: %s -> %s", agent.GetConfig().Name, agentTool.GetDefinition().ID)
 	return nil
 }
 
@@ -150,6 +397,16 @@ func (am *AgentManager) UnregisterAgent(agentID string) error {
 	agent, exists := am.agents[agentID]
 	if !exists {
 		return fmt.Errorf("agent with ID %s not found", agentID)
+	}
+
+	// 从ToolRegistry注销对应的Tool
+	if am.toolRegistry != nil {
+		toolID := fmt.Sprintf("agent_%s", agentID)
+		if err := am.toolRegistry.UnregisterTool(toolID); err != nil {
+			utils.Warn("从ToolRegistry注销Tool失败: %v", err)
+		} else {
+			utils.Info("已从ToolRegistry注销Tool: %s", toolID)
+		}
 	}
 
 	// 关闭Agent
@@ -408,7 +665,30 @@ func (am *AgentManager) CreateAgentFromConfig(config AgentConfig) (Agent, error)
 	switch config.Role {
 	case RoleFullStackDev:
 		return NewFullstackDeveloperAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine)
-	// 其他角色可以在这里添加
+	case RoleOrchestrator:
+		// 使用专门的OrchestratorAgent实现
+		return NewOrchestratorAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine, am)
+	case RoleProductManager:
+		// 使用专门的ProductManagerAgent实现
+		return NewProductManagerAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine)
+	case RoleArchitect:
+		// 使用专门的ArchitectAgent实现
+		return NewArchitectAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine)
+	case RoleFrontendDev:
+		// 使用专门的FrontendDeveloperAgent实现
+		return NewFrontendDeveloperAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine)
+	case RoleBackendDev:
+		// 使用专门的BackendDeveloperAgent实现
+		return NewBackendDeveloperAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine)
+	case RoleQAEngineer:
+		// 使用专门的QAEngineerAgent实现
+		return NewQAEngineerAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine)
+	case RoleDevOps:
+		// 使用专门的DevOpsEngineerAgent实现
+		return NewDevOpsEngineerAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine)
+	case RoleReviewer:
+		// 使用专门的ReviewerAgent实现
+		return NewReviewerAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine)
 	default:
 		return NewBaseAgent(config, am.modelAdapter, am.toolRegistry, am.flowEngine)
 	}

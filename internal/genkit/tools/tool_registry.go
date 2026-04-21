@@ -191,6 +191,16 @@ func (t *BaseTool) recordExecution(duration time.Duration) {
 	t.lastExecution = time.Now()
 }
 
+// IncrementExecutionCount 增加执行计数（供子类调用）
+func (t *BaseTool) IncrementExecutionCount(duration time.Duration) {
+	t.recordExecution(duration)
+}
+
+// Mutex 获取互斥锁（供子类调用）
+func (t *BaseTool) Mutex() *sync.RWMutex {
+	return &t.mutex
+}
+
 // ToolRegistry 工具注册表
 type ToolRegistry struct {
 	tools      map[string]Tool
