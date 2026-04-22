@@ -14,6 +14,18 @@ export function ClearLogs() {
   return window['go']['main']['App']['ClearLogs']();
 }
 
+export function ControlReplay(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ControlReplay'](arg1, arg2, arg3);
+}
+
+export function CreateHistoryRecord(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['CreateHistoryRecord'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function DeleteHistoryRecord(arg1) {
+  return window['go']['main']['App']['DeleteHistoryRecord'](arg1);
+}
+
 export function DeleteSkill(arg1) {
   return window['go']['main']['App']['DeleteSkill'](arg1);
 }
@@ -58,6 +70,14 @@ export function GetEvolutionBenefits() {
   return window['go']['main']['App']['GetEvolutionBenefits']();
 }
 
+export function GetHistoryRecord(arg1) {
+  return window['go']['main']['App']['GetHistoryRecord'](arg1);
+}
+
+export function GetHistoryStatistics(arg1, arg2) {
+  return window['go']['main']['App']['GetHistoryStatistics'](arg1, arg2);
+}
+
 export function GetLogStatistics() {
   return window['go']['main']['App']['GetLogStatistics']();
 }
@@ -96,6 +116,14 @@ export function GetMemoryStats() {
 
 export function GetRelatedSkills(arg1) {
   return window['go']['main']['App']['GetRelatedSkills'](arg1);
+}
+
+export function GetReplayData(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetReplayData'](arg1, arg2, arg3);
+}
+
+export function GetReplayState(arg1) {
+  return window['go']['main']['App']['GetReplayState'](arg1);
 }
 
 export function GetSemanticMemory() {
@@ -138,6 +166,10 @@ export function LogMessageWithDetails(arg1, arg2, arg3, arg4, arg5, arg6, arg7) 
   return window['go']['main']['App']['LogMessageWithDetails'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }
 
+export function QueryHistoryRecords(arg1) {
+  return window['go']['main']['App']['QueryHistoryRecords'](arg1);
+}
+
 export function RemoveMCPServer(arg1) {
   return window['go']['main']['App']['RemoveMCPServer'](arg1);
 }
@@ -146,8 +178,20 @@ export function SearchSkills(arg1, arg2) {
   return window['go']['main']['App']['SearchSkills'](arg1, arg2);
 }
 
+export function StartReplay(arg1, arg2) {
+  return window['go']['main']['App']['StartReplay'](arg1, arg2);
+}
+
+export function SubscribeToReplayEvents(arg1) {
+  return window['go']['main']['App']['SubscribeToReplayEvents'](arg1);
+}
+
 export function TestMCPServerConnection(arg1) {
   return window['go']['main']['App']['TestMCPServerConnection'](arg1);
+}
+
+export function UpdateHistoryRecord(arg1, arg2) {
+  return window['go']['main']['App']['UpdateHistoryRecord'](arg1, arg2);
 }
 
 export function UpdateMCPConfig(arg1) {

@@ -25,9 +25,15 @@ export interface TimelineEvent {
 }
 
 export interface LogEntry {
+  id: string;
   timestamp: string;
   level: 'info' | 'debug' | 'success' | 'warn' | 'error' | 'sys';
   message: string;
+  agentId?: string;
+  taskId?: string;
+  details?: any;
+  duration?: number;
+  tags?: string[];
 }
 
 export interface Thought {

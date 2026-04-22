@@ -3,6 +3,7 @@ package genkit
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"GenPulse/internal/agents"
@@ -20,29 +21,33 @@ import (
 
 // GenkitManager 管理Genkit运行时
 type GenkitManager struct {
-	ctx           context.Context
-	config        *genkitconfig.AppConfig
-	initialized   bool
-	modelAdapter  *models.UnifiedModelAdapter
-	toolRegistry  *tools.ToolRegistry
-	flowEngine    *flows.FlowEngine
-	agentManager  *agents.AgentManager
-	skillManager  *skills.SkillManager
-	memoryManager *memory.SearchEngine
-	mcpHost       *host.MCPHost
-	mcpConfig     *mcpconfig.MCPConfigManager
-	toolDiscovery *discovery.ToolDiscovery
+	ctx              context.Context
+	config           *genkitconfig.AppConfig
+	initialized      bool
+	modelAdapter     *models.UnifiedModelAdapter
+	toolRegistry     *tools.ToolRegistry
+	flowEngine       *flows.FlowEngine
+	agentManager     *agents.AgentManager
+	skillManager     *skills.SkillManager
+	memoryManager    *memory.SearchEngine
+	mcpHost          *host.MCPHost
+	mcpConfig        *mcpconfig.MCPConfigManager
+	toolDiscovery    *discovery.ToolDiscovery
+	StartupOptimizer *StartupOptimizer
+	phase2Ready      bool
+	phase3Ready      bool
 	// genkit     interface{} // 暂时用interface{}，等确定具体类型后替换
 }
 
 // NewGenkitManager 创建新的Genkit管理器
 func NewGenkitManager() *GenkitManager {
 	return &GenkitManager{
-		initialized: false,
+		initialized:      false,
+		StartupOptimizer: GetStartupOptimizer(),
 	}
 }
 
-// Initialize 初始化Genkit运行时
+// Initialize 初始化Genkit运行时（带启动阶段优化）
 func (gm *GenkitManager) Initialize(ctx context.Context) error {
 	if gm.initialized {
 		return nil
@@ -54,57 +59,194 @@ func (gm *GenkitManager) Initialize(ctx context.Context) error {
 	cfg := genkitconfig.GetConfig()
 	gm.config = cfg
 
-	utils.Info("初始化Genkit运行时...")
+	utils.Info("初始化Genkit运行时（启动优化模式）...")
 
-	// TODO: 初始化Genkit核心
-	// genkitInstance, err := genkitgo.Init(ctx)
-	// if err != nil {
-	//     return fmt.Errorf("failed to initialize Genkit: %w", err)
-	// }
-	// gm.genkit = genkitInstance
-
-	utils.Info("Genkit核心初始化完成")
-
-	// 配置模型提供商
-	if err := gm.configureModelProviders(); err != nil {
-		return fmt.Errorf("failed to configure model providers: %w", err)
+	// 预加载配置文件
+	if gm.StartupOptimizer.preloadConfig.Enabled {
+		gm.StartupOptimizer.PreloadConfigFiles()
 	}
 
-	// 初始化工具注册表
-	if err := gm.initToolRegistry(); err != nil {
-		return fmt.Errorf("failed to initialize tool registry: %w", err)
+	// ========== Phase 1: 关键服务 ==========
+	phase1Err := RunPhaseWithTimeout("Phase 1: 关键服务", Phase1Critical, gm.StartupOptimizer.GetPhase1Timeout(), gm.StartupOptimizer.metrics, func() error {
+		utils.Info("Phase 1: 初始化关键服务...")
+
+		// 配置模型提供商（核心依赖）
+		if err := gm.configureModelProviders(); err != nil {
+			return fmt.Errorf("failed to configure model providers: %w", err)
+		}
+
+		// 初始化工具注册表（核心依赖）
+		if err := gm.initToolRegistry(); err != nil {
+			return fmt.Errorf("failed to initialize tool registry: %w", err)
+		}
+
+		return nil
+	})
+	if phase1Err != nil {
+		utils.Error("Phase 1 初始化失败: %v", phase1Err)
 	}
 
-	// 初始化Flow引擎
-	if err := gm.initFlowEngine(); err != nil {
-		return fmt.Errorf("failed to initialize flow engine: %w", err)
+	// ========== Phase 2: 重要服务（并行） ==========
+	var wg sync.WaitGroup
+	var phase2Mu sync.Mutex
+	var phase2Errors []error
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		start := time.Now()
+		err := gm.initFlowEngine()
+		elapsed := time.Since(start)
+		gm.StartupOptimizer.metrics.RecordPhase("Flow引擎", Phase2Important, err == nil, err, elapsed)
+		if err != nil {
+			phase2Mu.Lock()
+			phase2Errors = append(phase2Errors, err)
+			phase2Mu.Unlock()
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		start := time.Now()
+		err := gm.initAgentManager()
+		elapsed := time.Since(start)
+		gm.StartupOptimizer.metrics.RecordPhase("Agent管理器", Phase2Important, err == nil, err, elapsed)
+		if err != nil {
+			phase2Mu.Lock()
+			phase2Errors = append(phase2Errors, err)
+			phase2Mu.Unlock()
+		}
+	}()
+
+	wg.Wait()
+	gm.phase2Ready = true
+
+	for _, err := range phase2Errors {
+		utils.Warn("Phase 2 部分初始化失败: %v", err)
 	}
 
-	// 初始化Agent管理器
-	if err := gm.initAgentManager(); err != nil {
-		return fmt.Errorf("failed to initialize agent manager: %w", err)
-	}
+	// ========== Phase 3: 后台服务（延迟初始化） ==========
+	go func() {
+		start := time.Now()
+		var phase3Wg sync.WaitGroup
 
-	// 初始化技能管理器
-	if err := gm.initSkillManager(); err != nil {
-		return fmt.Errorf("failed to initialize skill manager: %w", err)
-	}
+		// 技能管理器（延迟）
+		if !gm.StartupOptimizer.LazyInitSkills() {
+			phase3Wg.Add(1)
+			go func() {
+				defer phase3Wg.Done()
+				s := time.Now()
+				err := gm.initSkillManager()
+				gm.StartupOptimizer.metrics.RecordPhase("技能管理器", Phase3Background, err == nil, err, time.Since(s))
+				if err != nil {
+					utils.Warn("技能管理器初始化失败（Phase 3）: %v", err)
+				}
+			}()
+		}
 
-	// 初始化记忆管理器
-	if err := gm.initMemoryManager(); err != nil {
-		return fmt.Errorf("failed to initialize memory manager: %w", err)
-	}
+		// 记忆管理器（延迟）
+		phase3Wg.Add(1)
+		go func() {
+			defer phase3Wg.Done()
+			s := time.Now()
+			err := gm.initMemoryManager()
+			gm.StartupOptimizer.metrics.RecordPhase("记忆管理器", Phase3Background, err == nil, err, time.Since(s))
+			if err != nil {
+				utils.Warn("记忆管理器初始化失败（Phase 3）: %v", err)
+			}
+		}()
 
-	// 初始化MCP功能
-	if err := gm.initMCP(); err != nil {
-		utils.Warn("MCP初始化失败: %v，继续运行", err)
-		// MCP不是核心功能，允许失败
-	}
+		// MCP功能（延迟）
+		if !gm.StartupOptimizer.LazyInitMCP() {
+			phase3Wg.Add(1)
+			go func() {
+				defer phase3Wg.Done()
+				s := time.Now()
+				err := gm.initMCP()
+				gm.StartupOptimizer.metrics.RecordPhase("MCP功能", Phase3Background, err == nil, err, time.Since(s))
+				if err != nil {
+					utils.Warn("MCP初始化失败（Phase 3）: %v", err)
+				}
+			}()
+		}
 
+		phase3Wg.Wait()
+		gm.phase3Ready = true
+		elapsed := time.Since(start)
+		gm.StartupOptimizer.metrics.RecordPhase("Phase 3: 后台服务", Phase3Background, true, nil, elapsed)
+
+		gm.initialized = true
+		utils.Info("Genkit运行时初始化完成（总耗时: %v）", elapsed)
+
+		// 报告启动指标
+		gm.StartupOptimizer.ReportMetrics()
+	}()
+
+	// 立即标记为已初始化（前端可交互）
 	gm.initialized = true
-	utils.Info("Genkit运行时初始化完成")
-
 	return nil
+}
+
+func (gm *GenkitManager) IsPhase2Ready() bool {
+	return gm.phase2Ready
+}
+
+func (gm *GenkitManager) IsPhase3Ready() bool {
+	return gm.phase3Ready
+}
+
+// InitializeSync 同步初始化（阻塞直到全部完成）
+func (gm *GenkitManager) InitializeSync(ctx context.Context) error {
+	if err := gm.Initialize(ctx); err != nil {
+		return err
+	}
+
+	for !gm.phase3Ready {
+		time.Sleep(50 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+	}
+	return nil
+}
+
+// RunPhase2 手动触发Phase 2初始化（如果尚未完成）
+func (gm *GenkitManager) RunPhase2() error {
+	if gm.phase2Ready {
+		return nil
+	}
+
+	var wg sync.WaitGroup
+	var lastErr error
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		if gm.flowEngine == nil {
+			start := time.Now()
+			err := gm.initFlowEngine()
+			gm.StartupOptimizer.metrics.RecordPhase("Flow引擎(按需)", Phase2Important, err == nil, err, time.Since(start))
+			if err != nil {
+				lastErr = err
+			}
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		if gm.agentManager == nil {
+			start := time.Now()
+			err := gm.initAgentManager()
+			gm.StartupOptimizer.metrics.RecordPhase("Agent管理器(按需)", Phase2Important, err == nil, err, time.Since(start))
+			if err != nil {
+				lastErr = err
+			}
+		}
+	}()
+
+	wg.Wait()
+	gm.phase2Ready = true
+	return lastErr
 }
 
 // configureModelProviders 配置模型提供商

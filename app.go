@@ -11,6 +11,7 @@ import (
 	"GenPulse/internal/mcp/host"
 	"GenPulse/internal/monitoring/history"
 	"GenPulse/internal/services"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -50,21 +51,77 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	startTime := time.Now()
 
-	// 启动基础服务
-	a.baseService.Startup(ctx)
+	// Phase 1: 关键服务 - 快速返回，UI立即可用
+	{
+		phaseStart := time.Now()
 
-	// 启动Genkit运行时
-	if err := a.genkitManager.Initialize(ctx); err != nil {
-		fmt.Printf("警告: Genkit运行时初始化失败: %v\n", err)
-		// 不阻止应用启动，记录错误继续
-		a.baseService.LogMessage("error", fmt.Sprintf("Genkit初始化失败: %v", err))
-	} else {
-		a.baseService.LogMessage("info", "Genkit运行时初始化完成")
+		// 启动基础服务
+		a.baseService.Startup(ctx)
+
+		// 启动Genkit运行时（Phase 1: 关键路径）
+		if err := a.genkitManager.Initialize(ctx); err != nil {
+			utils.Warn("Genkit初始化失败: %v", err)
+			a.baseService.LogMessage("error", fmt.Sprintf("Genkit初始化失败: %v", err))
+		}
+
+		// 设置历史记录桥接器的上下文
+		if a.historyBridge != nil {
+			a.historyBridge.SetContext(ctx)
+		}
+
+		elapsed := time.Since(phaseStart)
+		utils.Info("Phase 1 完成 (%d ms)", elapsed.Milliseconds())
+
+		// 通知前端 Phase 1 完成
+		runtime.EventsEmit(ctx, "startup:phase1_complete", map[string]interface{}{
+			"phase":   1,
+			"elapsed": elapsed.Milliseconds(),
+			"total":   int(time.Since(startTime).Milliseconds()),
+		})
 	}
 
-	// 设置历史记录桥接器的上下文
-	a.historyBridge.SetContext(ctx)
+	// Phase 2+3: 后台继续初始化
+	go func() {
+		// Phase 2: 重要服务（Flow引擎、Agent管理器）
+		for !a.genkitManager.IsPhase2Ready() {
+			time.Sleep(50 * time.Millisecond)
+		}
+		phase2Elapsed := time.Since(startTime)
+		utils.Info("Phase 2 完成 (%d ms)", phase2Elapsed.Milliseconds())
+
+		runtime.EventsEmit(ctx, "startup:phase2_complete", map[string]interface{}{
+			"phase":   2,
+			"elapsed": phase2Elapsed.Milliseconds(),
+			"total":   int(time.Since(startTime).Milliseconds()),
+		})
+
+		// Phase 3: 后台服务（技能、记忆、MCP）
+		for !a.genkitManager.IsPhase3Ready() {
+			time.Sleep(50 * time.Millisecond)
+		}
+		phase3Elapsed := time.Since(startTime)
+		utils.Info("Phase 3 完成 (%d ms)", phase3Elapsed.Milliseconds())
+
+		runtime.EventsEmit(ctx, "startup:phase3_complete", map[string]interface{}{
+			"phase":   3,
+			"elapsed": phase3Elapsed.Milliseconds(),
+			"total":   int(time.Since(startTime).Milliseconds()),
+		})
+
+		// 完整的启动指标
+		runtime.EventsEmit(ctx, "startup:metrics", map[string]interface{}{
+			"total_elapsed_ms": time.Since(startTime).Milliseconds(),
+			"phases": []map[string]interface{}{
+				{"phase": 1, "name": "关键服务", "elapsed": int((time.Since(startTime) - phase3Elapsed + phase3Elapsed).Milliseconds())},
+				{"phase": 2, "name": "重要服务", "elapsed": int(phase2Elapsed.Milliseconds())},
+				{"phase": 3, "name": "后台服务", "elapsed": int(phase3Elapsed.Milliseconds())},
+			},
+		})
+
+		utils.Info("应用启动完成，总耗时: %d ms", time.Since(startTime).Milliseconds())
+	}()
 }
 
 // Greet returns a greeting for the given name

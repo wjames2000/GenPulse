@@ -14,5 +14,9 @@
   "https_proxy": "",
   "enable_auto_save": true,
   "auto_save_interval": 300,
-  "max_history_items": 100
+  "max_history_items": 100,
+  "startup_phase1_timeout_ms": 500,
+  "lazy_init_mcp": true,
+  "lazy_init_skills": true,
+  "preload_config": true
 }
