@@ -78,6 +78,17 @@ type Condition struct {
 	Expected any    `json:"expected" yaml:"expected"` // 期望值
 }
 
+// SkillVersion 技能版本快照
+type SkillVersion struct {
+	ID        string    `json:"id" yaml:"id"`
+	SkillID   string    `json:"skill_id" yaml:"skill_id"`
+	Version   string    `json:"version" yaml:"version"`
+	Snapshot  *Skill    `json:"snapshot" yaml:"snapshot"`
+	ChangeLog string    `json:"change_log" yaml:"change_log"`
+	CreatedAt time.Time `json:"created_at" yaml:"created_at"`
+	CreatedBy string    `json:"created_by" yaml:"created_by"`
+}
+
 // SkillMetadata 用于渐进式披露加载的元数据
 type SkillMetadata struct {
 	ID            string   `json:"id" yaml:"id"`
@@ -227,5 +238,29 @@ func formatSkillID(name string, timestamp int64) string {
 
 // 错误定义
 var (
-	ErrStepNotFound = errors.New("step not found")
+	ErrStepNotFound    = errors.New("step not found")
+	ErrVersionNotFound = errors.New("version not found")
 )
+
+// BumpVersion 递增技能版本号
+func (s *Skill) BumpVersion(bumpType string) {
+	parts := strings.Split(s.Version, ".")
+	major, _ := strconv.Atoi(parts[0])
+	minor, _ := strconv.Atoi(parts[1])
+	patch, _ := strconv.Atoi(parts[2])
+
+	switch bumpType {
+	case "major":
+		major++
+		minor = 0
+		patch = 0
+	case "minor":
+		minor++
+		patch = 0
+	default:
+		patch++
+	}
+
+	s.Version = strconv.Itoa(major) + "." + strconv.Itoa(minor) + "." + strconv.Itoa(patch)
+	s.UpdatedAt = time.Now()
+}

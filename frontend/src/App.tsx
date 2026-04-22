@@ -49,6 +49,7 @@ import MCPConfigView from './components/MCPConfigView';
 import MonitoringDashboard from './components/MonitoringDashboard';
 import StartupScreen from './components/StartupScreen';
 import { api } from './services/api';
+import * as AppBindings from '../wailsjs/go/main/App';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -64,35 +65,51 @@ export default function App() {
   useEffect(() => {
     const onPhase1 = () => setStartupComplete(true);
     EventsOn('startup:phase1_complete', onPhase1);
-    return () => { EventsOff('startup:phase1_complete'); };
+
+    const interval = setInterval(async () => {
+      try {
+        const phase = await AppBindings.GetStartupPhase();
+        if (phase.phase >= 1) {
+          setStartupComplete(true);
+          clearInterval(interval);
+        }
+      } catch {
+      }
+    }, 200);
+
+    return () => {
+      EventsOff('startup:phase1_complete');
+      clearInterval(interval);
+    };
+  }, []);
+
+  const checkSystemStatus = useCallback(async () => {
+    try {
+      const health = await api.healthCheck();
+      setSystemStatus(health.status === 'healthy' ? 'healthy' : 'degraded');
+
+      const agentsStatus = await api.getAllAgentsStatus();
+      const activeCount = Object.values(agentsStatus).filter((agent: any) =>
+        agent?.state === 'active'
+      ).length;
+      setActiveAgents(activeCount);
+    } catch (error) {
+      setSystemStatus('error');
+    }
   }, []);
 
   useEffect(() => {
-    const checkSystemStatus = async () => {
-      try {
-        const health = await api.healthCheck();
-        if (health.status === 'healthy') {
-          setSystemStatus('healthy');
-        } else {
-          setSystemStatus('degraded');
-        }
-
-        const agentsStatus = await api.getAllAgentsStatus();
-        const activeCount = Object.values(agentsStatus).filter((agent: any) => 
-          agent?.state === 'active'
-        ).length;
-        setActiveAgents(activeCount);
-      } catch (error) {
-        setSystemStatus('error');
-        console.error('Failed to check system status:', error);
-      }
+    const onPhase2 = () => {
+      checkSystemStatus();
     };
+    EventsOn('startup:phase2_complete', onPhase2);
+    return () => { EventsOff('startup:phase2_complete'); };
+  }, [checkSystemStatus]);
 
-    checkSystemStatus();
+  useEffect(() => {
     const interval = setInterval(checkSystemStatus, 30000);
-
     return () => clearInterval(interval);
-  }, []);
+  }, [checkSystemStatus]);
 
   const handleViewChange = useCallback((view: View) => {
     if (view === currentView) return;

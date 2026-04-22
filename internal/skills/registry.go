@@ -17,6 +17,7 @@ import (
 type Registry struct {
 	skills    map[string]*Skill
 	metadata  map[string]*SkillMetadata
+	versions  map[string][]*SkillVersion
 	index     *Index
 	storage   Storage
 	mu        sync.RWMutex
@@ -38,6 +39,8 @@ type Storage interface {
 	Delete(id string) error
 	List() ([]*SkillMetadata, error)
 	Exists(id string) bool
+	SaveVersion(version *SkillVersion) error
+	LoadVersions(skillID string) ([]*SkillVersion, error)
 }
 
 // FileStorage 文件系统存储
@@ -56,6 +59,7 @@ func NewRegistry(skillsDir string) (*Registry, error) {
 	registry := &Registry{
 		skills:    make(map[string]*Skill),
 		metadata:  make(map[string]*SkillMetadata),
+		versions:  make(map[string][]*SkillVersion),
 		index:     newIndex(),
 		storage:   storage,
 		skillsDir: skillsDir,
@@ -182,6 +186,155 @@ func (r *Registry) Update(skill *Skill) error {
 	return nil
 }
 
+// SaveVersion 保存技能版本快照
+func (r *Registry) SaveVersion(skillID string, changeLog string, createdBy string) (*SkillVersion, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	skill, exists := r.skills[skillID]
+	if !exists {
+		return nil, fmt.Errorf("skill with ID %s does not exist", skillID)
+	}
+
+	// 创建深拷贝快照
+	snapshot := *skill
+	snapshot.Steps = make([]Step, len(skill.Steps))
+	copy(snapshot.Steps, skill.Steps)
+	snapshot.Examples = make([]string, len(skill.Examples))
+	copy(snapshot.Examples, skill.Examples)
+	snapshot.Tips = make([]string, len(skill.Tips))
+	copy(snapshot.Tips, skill.Tips)
+	snapshot.Warnings = make([]string, len(skill.Warnings))
+	copy(snapshot.Warnings, skill.Warnings)
+	snapshot.Tags = make([]string, len(skill.Tags))
+	copy(snapshot.Tags, skill.Tags)
+	snapshot.Prerequisites = make([]string, len(skill.Prerequisites))
+	copy(snapshot.Prerequisites, skill.Prerequisites)
+	snapshot.RelatedTools = make([]string, len(skill.RelatedTools))
+	copy(snapshot.RelatedTools, skill.RelatedTools)
+	snapshot.AgentTypes = make([]string, len(skill.AgentTypes))
+	copy(snapshot.AgentTypes, skill.AgentTypes)
+
+	version := &SkillVersion{
+		ID:        generateSkillID("version_" + skill.ID),
+		SkillID:   skillID,
+		Version:   skill.Version,
+		Snapshot:  &snapshot,
+		ChangeLog: changeLog,
+		CreatedAt: time.Now(),
+		CreatedBy: createdBy,
+	}
+
+	r.versions[skillID] = append(r.versions[skillID], version)
+
+	// 持久化版本快照到文件
+	if err := r.storage.SaveVersion(version); err != nil {
+		return nil, fmt.Errorf("failed to save version snapshot: %w", err)
+	}
+
+	return version, nil
+}
+
+// GetVersions 获取技能所有版本
+func (r *Registry) GetVersions(skillID string) ([]*SkillVersion, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if versions, exists := r.versions[skillID]; exists {
+		result := make([]*SkillVersion, len(versions))
+		copy(result, versions)
+		return result, nil
+	}
+
+	// 从存储加载版本历史
+	versions, err := r.storage.LoadVersions(skillID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load versions: %w", err)
+	}
+
+	r.versions[skillID] = versions
+	result := make([]*SkillVersion, len(versions))
+	copy(result, versions)
+	return result, nil
+}
+
+// Rollback 回滚到指定版本
+func (r *Registry) Rollback(skillID string, versionID string) (*Skill, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	skill, exists := r.skills[skillID]
+	if !exists {
+		return nil, fmt.Errorf("skill with ID %s does not exist", skillID)
+	}
+
+	versions, exists := r.versions[skillID]
+	if !exists {
+		var err error
+		versions, err = r.storage.LoadVersions(skillID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load versions: %w", err)
+		}
+		r.versions[skillID] = versions
+	}
+
+	var targetVersion *SkillVersion
+	for _, v := range versions {
+		if v.ID == versionID {
+			targetVersion = v
+			break
+		}
+	}
+	if targetVersion == nil {
+		return nil, ErrVersionNotFound
+	}
+
+	// 保存当前版本为快照（自动备份）
+	currentVersion := *skill
+	currentVersion.Steps = make([]Step, len(skill.Steps))
+	copy(currentVersion.Steps, skill.Steps)
+	backupVersion := &SkillVersion{
+		ID:        generateSkillID("version_" + skillID),
+		SkillID:   skillID,
+		Version:   skill.Version,
+		Snapshot:  &currentVersion,
+		ChangeLog: "auto-backup before rollback to " + targetVersion.Version,
+		CreatedAt: time.Now(),
+		CreatedBy: "system",
+	}
+	r.versions[skillID] = append(r.versions[skillID], backupVersion)
+	r.storage.SaveVersion(backupVersion)
+
+	// 用快照恢复
+	snapshot := targetVersion.Snapshot
+	skill.Name = snapshot.Name
+	skill.Version = snapshot.Version
+	skill.Description = snapshot.Description
+	skill.Author = snapshot.Author
+	skill.Category = snapshot.Category
+	skill.Tags = snapshot.Tags
+	skill.Complexity = snapshot.Complexity
+	skill.Steps = snapshot.Steps
+	skill.Examples = snapshot.Examples
+	skill.Tips = snapshot.Tips
+	skill.Warnings = snapshot.Warnings
+	skill.Prerequisites = snapshot.Prerequisites
+	skill.RelatedTools = snapshot.RelatedTools
+	skill.AgentTypes = snapshot.AgentTypes
+	skill.TokenEstimate = snapshot.TokenEstimate
+	skill.UpdatedAt = time.Now()
+
+	// 持久化
+	if err := r.storage.Save(skill); err != nil {
+		return nil, fmt.Errorf("failed to save rolled back skill: %w", err)
+	}
+
+	r.metadata[skillID] = skill.ToMetadata()
+	r.rebuildIndex()
+
+	return skill, nil
+}
+
 // Delete 删除技能
 func (r *Registry) Delete(id string) error {
 	r.mu.Lock()
@@ -195,6 +348,7 @@ func (r *Registry) Delete(id string) error {
 	// 从内存删除
 	delete(r.skills, id)
 	delete(r.metadata, id)
+	delete(r.versions, id)
 
 	// 重新构建索引
 	r.rebuildIndex()
@@ -469,6 +623,12 @@ func (r *Registry) loadAllSkills() error {
 		r.skills[skill.ID] = skill
 		r.metadata[skill.ID] = skill.ToMetadata()
 		r.updateIndex(skill)
+
+		// 加载版本历史
+		versions, err := r.storage.LoadVersions(skill.ID)
+		if err == nil && len(versions) > 0 {
+			r.versions[skill.ID] = versions
+		}
 	}
 
 	return nil
@@ -592,6 +752,57 @@ func (fs *FileStorage) List() ([]*SkillMetadata, error) {
 	}
 
 	return metadatas, nil
+}
+
+// SaveVersion 保存版本快照
+func (fs *FileStorage) SaveVersion(version *SkillVersion) error {
+	versionsDir := filepath.Join(fs.baseDir, version.SkillID, "versions")
+	if err := os.MkdirAll(versionsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create versions directory: %w", err)
+	}
+
+	versionFile := filepath.Join(versionsDir, version.Version+".json")
+	data, err := json.MarshalIndent(version, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal version: %w", err)
+	}
+
+	return os.WriteFile(versionFile, data, 0644)
+}
+
+// LoadVersions 加载所有版本快照
+func (fs *FileStorage) LoadVersions(skillID string) ([]*SkillVersion, error) {
+	versionsDir := filepath.Join(fs.baseDir, skillID, "versions")
+
+	if _, err := os.Stat(versionsDir); os.IsNotExist(err) {
+		return []*SkillVersion{}, nil
+	}
+
+	entries, err := os.ReadDir(versionsDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read versions directory: %w", err)
+	}
+
+	var versions []*SkillVersion
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+
+		data, err := os.ReadFile(filepath.Join(versionsDir, entry.Name()))
+		if err != nil {
+			continue
+		}
+
+		var version SkillVersion
+		if err := json.Unmarshal(data, &version); err != nil {
+			continue
+		}
+
+		versions = append(versions, &version)
+	}
+
+	return versions, nil
 }
 
 // Exists 检查技能是否存在

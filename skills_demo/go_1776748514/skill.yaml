@@ -1,0 +1,101 @@
+id: go_1776748514
+name: Go
+version: 1.0.0
+description: 创建Go项目目录结构并初始化git仓库
+author: system
+created_at: 2026-04-21T13:15:14.274028+08:00
+updated_at: 2026-04-21T13:15:14.274028+08:00
+category: filesystem
+tags:
+    - file_operation
+    - medium
+    - fs_write
+    - git_init
+    - git_add
+    - fs_create
+    - BackendDevAgent
+    - DevOpsAgent
+    - success
+complexity: medium
+usage_count: 0
+last_used: 0001-01-01T00:00:00Z
+success_rate: 0
+prerequisites: []
+steps:
+    - id: "temp_step_\x01"
+      order: 1
+      action: 创建项目目录结构
+      tool: fs_create
+      parameters:
+        - name: path
+          type: string
+          description: 参数 path
+          required: true
+          default: ./myproject
+        - name: type
+          type: string
+          description: 参数 type
+          required: true
+          default: directory
+      conditions: []
+      expected: 操作成功完成
+    - id: "temp_step_\x02"
+      order: 2
+      action: 创建go.mod文件
+      tool: fs_write
+      parameters:
+        - name: path
+          type: string
+          description: 参数 path
+          required: true
+          default: ./myproject/go.mod
+        - name: content
+          type: string
+          description: 参数 content
+          required: true
+          default: |
+            module myproject
+
+            go 1.21
+      conditions:
+        - type: previous_step_success
+          check: step_1_success
+          expected: true
+      expected: 操作成功完成
+    - id: "temp_step_\x03"
+      order: 3
+      action: 初始化git仓库
+      tool: git_init
+      parameters:
+        - name: path
+          type: string
+          description: 参数 path
+          required: true
+          default: ./myproject
+      conditions:
+        - type: previous_step_success
+          check: step_2_success
+          expected: true
+      expected: 操作成功完成
+examples:
+    - Go项目初始化技能|创建Go项目目录结构并初始化git仓库
+tips:
+    - 确保所有前置条件满足后再执行
+    - 仔细检查参数格式和类型
+    - 写入文件前检查目录权限
+    - 写入文件前检查目录权限
+warnings:
+    - 此技能执行时间较长，请确保有足够时间
+source_task_id: task_001
+related_tools:
+    - git_add
+    - fs_create
+    - fs_write
+    - git_init
+agent_types:
+    - BackendDevAgent
+    - DevOpsAgent
+avg_execution_time: 10m0.000004099s
+token_estimate: 619
+enabled: true
+validated: false

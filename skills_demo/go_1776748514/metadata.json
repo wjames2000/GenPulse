@@ -1,0 +1,1 @@
+{"id":"go_1776748514","name":"Go","version":"1.0.0","description":"创建Go项目目录结构并初始化git仓库","category":"filesystem","tags":["file_operation","medium","fs_write","git_init","git_add","fs_create","BackendDevAgent","DevOpsAgent","success"],"complexity":"medium","usage_count":0,"success_rate":0,"enabled":true,"validated":false,"token_estimate":619}

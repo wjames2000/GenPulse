@@ -11,6 +11,8 @@ export function ControlReplay(arg1:string,arg2:string,arg3:Record<string, any>):
 
 export function CreateHistoryRecord(arg1:string,arg2:string,arg3:string,arg4:Record<string, any>,arg5:Array<string>):Promise<Record<string, any>>;
 
+export function CreateSkill(arg1:Record<string, any>):Promise<Record<string, any>>;
+
 export function DeleteHistoryRecord(arg1:string):Promise<void>;
 
 export function DeleteSkill(arg1:string):Promise<void>;
@@ -69,7 +71,11 @@ export function GetSkillDetails(arg1:string):Promise<Record<string, any>>;
 
 export function GetSkillStats():Promise<Record<string, any>>;
 
+export function GetSkillVersions(arg1:string):Promise<Array<Record<string, any>>>;
+
 export function GetSkills():Promise<Array<Record<string, any>>>;
+
+export function GetStartupPhase():Promise<Record<string, any>>;
 
 export function Greet(arg1:string):Promise<string>;
 
@@ -77,7 +83,13 @@ export function HealthCheck():Promise<Record<string, any>>;
 
 export function ImportSkill(arg1:string,arg2:string):Promise<Record<string, any>>;
 
+export function ImportSkillFromOnline(arg1:string,arg2:string):Promise<Record<string, any>>;
+
+export function ImportSkillFromURL(arg1:string):Promise<Record<string, any>>;
+
 export function ListAgents():Promise<Array<Record<string, any>>>;
+
+export function ListOnlineSources():Promise<Array<Record<string, any>>>;
 
 export function LogMessage(arg1:string,arg2:string):Promise<void>;
 
@@ -86,6 +98,10 @@ export function LogMessageWithDetails(arg1:string,arg2:string,arg3:Record<string
 export function QueryHistoryRecords(arg1:Record<string, any>):Promise<Array<Record<string, any>>>;
 
 export function RemoveMCPServer(arg1:string):Promise<void>;
+
+export function RollbackSkill(arg1:string,arg2:string):Promise<Record<string, any>>;
+
+export function SearchOnlineSkills(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
 
 export function SearchSkills(arg1:string,arg2:Record<string, any>):Promise<Array<Record<string, any>>>;
 
@@ -100,5 +116,7 @@ export function UpdateHistoryRecord(arg1:string,arg2:Record<string, any>):Promis
 export function UpdateMCPConfig(arg1:Record<string, any>):Promise<void>;
 
 export function UpdateMCPServer(arg1:string,arg2:Record<string, any>):Promise<void>;
+
+export function UpdateSkill(arg1:string,arg2:Record<string, any>):Promise<void>;
 
 export function ValidateSkill(arg1:string):Promise<Record<string, any>>;

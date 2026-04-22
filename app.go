@@ -1,6 +1,8 @@
 package main
 
 import (
+	"GenPulse/internal/agents"
+	"GenPulse/internal/skills"
 	"GenPulse/internal/utils"
 	"context"
 	"fmt"
@@ -160,9 +162,20 @@ func (a *App) GetLogs() []map[string]interface{} {
 
 // Agent相关命令
 
+// waitForAgentManager 等待Agent管理器就绪
+func (a *App) waitForAgentManager() *agents.AgentManager {
+	for {
+		agentManager := a.genkitManager.GetAgentManager()
+		if agentManager != nil {
+			return agentManager
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
 // ListAgents 获取Agent列表
 func (a *App) ListAgents() ([]map[string]interface{}, error) {
-	agentManager := a.genkitManager.GetAgentManager()
+	agentManager := a.waitForAgentManager()
 	if agentManager == nil {
 		return nil, fmt.Errorf("agent manager not initialized")
 	}
@@ -193,7 +206,7 @@ func (a *App) ListAgents() ([]map[string]interface{}, error) {
 
 // GetAgentStatus 获取Agent状态
 func (a *App) GetAgentStatus(agentId string) (map[string]interface{}, error) {
-	agentManager := a.genkitManager.GetAgentManager()
+	agentManager := a.waitForAgentManager()
 	if agentManager == nil {
 		return nil, fmt.Errorf("agent manager not initialized")
 	}
@@ -208,7 +221,7 @@ func (a *App) GetAgentStatus(agentId string) (map[string]interface{}, error) {
 
 // GetAllAgentsStatus 获取所有Agent状态
 func (a *App) GetAllAgentsStatus() (map[string]interface{}, error) {
-	agentManager := a.genkitManager.GetAgentManager()
+	agentManager := a.waitForAgentManager()
 	if agentManager == nil {
 		return nil, fmt.Errorf("agent manager not initialized")
 	}
@@ -219,7 +232,7 @@ func (a *App) GetAllAgentsStatus() (map[string]interface{}, error) {
 
 // ExecuteAgent 执行Agent任务
 func (a *App) ExecuteAgent(agentId string, task string, parameters map[string]interface{}) (map[string]interface{}, error) {
-	agentManager := a.genkitManager.GetAgentManager()
+	agentManager := a.waitForAgentManager()
 	if agentManager == nil {
 		return nil, fmt.Errorf("agent manager not initialized")
 	}
@@ -271,6 +284,21 @@ func (a *App) CancelAgentExecution(executionId string) error {
 // HealthCheck 健康检查
 func (a *App) HealthCheck() map[string]interface{} {
 	return a.baseService.HealthCheck()
+}
+
+// GetStartupPhase 获取当前启动阶段（供前端轮询）
+func (a *App) GetStartupPhase() map[string]interface{} {
+	phase := 1
+	if a.genkitManager.IsPhase2Ready() {
+		phase = 2
+	}
+	if a.genkitManager.IsPhase3Ready() {
+		phase = 3
+	}
+	return map[string]interface{}{
+		"phase": phase,
+		"ready": a.genkitManager.IsInitialized(),
+	}
 }
 
 // LogMessage 记录日志消息
@@ -729,6 +757,285 @@ func (a *App) ImportSkill(data string, format string) (map[string]interface{}, e
 		"category":    skill.Category,
 		"version":     skill.Version,
 	}, nil
+}
+
+// ==================== 在线技能导入 API ====================
+
+// ListOnlineSources 列出在线技能来源
+func (a *App) ListOnlineSources() ([]map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+	return skillManager.ListOnlineSources(), nil
+}
+
+// ImportSkillFromURL 从URL导入在线技能
+func (a *App) ImportSkillFromURL(rawURL string) (map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	ctx := context.Background()
+	skill, err := skillManager.ImportSkillFromURL(ctx, rawURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to import skill from URL: %w", err)
+	}
+
+	return map[string]interface{}{
+		"id":          skill.ID,
+		"name":        skill.Name,
+		"description": skill.Description,
+		"category":    skill.Category,
+		"version":     skill.Version,
+		"author":      skill.Author,
+	}, nil
+}
+
+// ImportSkillFromOnline 从在线来源导入技能
+func (a *App) ImportSkillFromOnline(source string, skillID string) (map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	ctx := context.Background()
+	skill, err := skillManager.ImportOnlineSkill(ctx, skills.SkillSource(source), skillID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to import skill from online: %w", err)
+	}
+
+	return map[string]interface{}{
+		"id":          skill.ID,
+		"name":        skill.Name,
+		"description": skill.Description,
+		"category":    skill.Category,
+		"version":     skill.Version,
+		"author":      skill.Author,
+	}, nil
+}
+
+// SearchOnlineSkills 搜索在线技能
+func (a *App) SearchOnlineSkills(query string, source string) ([]map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	ctx := context.Background()
+	onlineSkills, err := skillManager.SearchOnlineSkills(ctx, query, skills.SkillSource(source))
+	if err != nil {
+		return nil, fmt.Errorf("failed to search online skills: %w", err)
+	}
+
+	result := make([]map[string]interface{}, len(onlineSkills))
+	for i, s := range onlineSkills {
+		result[i] = map[string]interface{}{
+			"id":          s.ID,
+			"name":        s.Name,
+			"description": s.Description,
+			"category":    s.Category,
+			"version":     s.Version,
+			"author":      s.Author,
+			"source":      string(s.Source),
+			"source_url":  s.SourceURL,
+			"tags":        s.Tags,
+			"complexity":  s.Complexity,
+		}
+	}
+
+	return result, nil
+}
+
+// CreateSkill 创建新技能
+func (a *App) CreateSkill(params map[string]interface{}) (map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	skill := skills.NewSkill(
+		getStringParam(params, "name"),
+		getStringParam(params, "description"),
+		getStringParam(params, "author"),
+	)
+
+	if category, ok := params["category"].(string); ok {
+		skill.Category = category
+	}
+	if complexity, ok := params["complexity"].(string); ok {
+		skill.Complexity = complexity
+	}
+	if tags, ok := params["tags"].([]interface{}); ok {
+		for _, tag := range tags {
+			if s, ok := tag.(string); ok {
+				skill.Tags = append(skill.Tags, s)
+			}
+		}
+	}
+	if tokenEstimate, ok := params["token_estimate"].(float64); ok {
+		skill.TokenEstimate = int(tokenEstimate)
+	}
+
+	if err := skillManager.CreateSkill(skill); err != nil {
+		return nil, fmt.Errorf("failed to create skill: %w", err)
+	}
+
+	return map[string]interface{}{
+		"id":          skill.ID,
+		"name":        skill.Name,
+		"description": skill.Description,
+		"category":    skill.Category,
+		"version":     skill.Version,
+	}, nil
+}
+
+// UpdateSkill 更新技能（完整编辑）
+func (a *App) UpdateSkill(skillID string, params map[string]interface{}) error {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return fmt.Errorf("skill manager not initialized")
+	}
+
+	// 获取现有技能
+	loadResult, err := skillManager.GetSkill(skillID, 1)
+	if err != nil {
+		return fmt.Errorf("failed to get skill: %w", err)
+	}
+	skill := loadResult.Skill
+
+	// 更新字段
+	if name, ok := params["name"].(string); ok {
+		skill.Name = name
+	}
+	if description, ok := params["description"].(string); ok {
+		skill.Description = description
+	}
+	if category, ok := params["category"].(string); ok {
+		skill.Category = category
+	}
+	if complexity, ok := params["complexity"].(string); ok {
+		skill.Complexity = complexity
+	}
+	if tags, ok := params["tags"].([]interface{}); ok {
+		skill.Tags = []string{}
+		for _, tag := range tags {
+			if s, ok := tag.(string); ok {
+				skill.Tags = append(skill.Tags, s)
+			}
+		}
+	}
+	if steps, ok := params["steps"].([]interface{}); ok {
+		skill.Steps = []skills.Step{}
+		for i, s := range steps {
+			if stepMap, ok := s.(map[string]interface{}); ok {
+				step := skills.Step{
+					ID:     fmt.Sprintf("%s_step_%d", skillID, i+1),
+					Order:  i + 1,
+					Action: getStringParam(stepMap, "action"),
+					Tool:   getStringParam(stepMap, "tool"),
+				}
+				skill.Steps = append(skill.Steps, step)
+			}
+		}
+	}
+	if examples, ok := params["examples"].([]interface{}); ok {
+		skill.Examples = []string{}
+		for _, e := range examples {
+			if s, ok := e.(string); ok {
+				skill.Examples = append(skill.Examples, s)
+			}
+		}
+	}
+	if tips, ok := params["tips"].([]interface{}); ok {
+		skill.Tips = []string{}
+		for _, t := range tips {
+			if s, ok := t.(string); ok {
+				skill.Tips = append(skill.Tips, s)
+			}
+		}
+	}
+	if warnings, ok := params["warnings"].([]interface{}); ok {
+		skill.Warnings = []string{}
+		for _, w := range warnings {
+			if s, ok := w.(string); ok {
+				skill.Warnings = append(skill.Warnings, s)
+			}
+		}
+	}
+	if agentTypes, ok := params["agent_types"].([]interface{}); ok {
+		skill.AgentTypes = []string{}
+		for _, a := range agentTypes {
+			if s, ok := a.(string); ok {
+				skill.AgentTypes = append(skill.AgentTypes, s)
+			}
+		}
+	}
+	if tokenEstimate, ok := params["token_estimate"].(float64); ok {
+		skill.TokenEstimate = int(tokenEstimate)
+	}
+
+	changeLog := getStringParam(params, "change_log")
+	if changeLog == "" {
+		changeLog = "manual update"
+	}
+
+	return skillManager.UpdateSkill(skill, changeLog)
+}
+
+// GetSkillVersions 获取技能版本历史
+func (a *App) GetSkillVersions(skillID string) ([]map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	versions, err := skillManager.GetSkillVersions(skillID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get skill versions: %w", err)
+	}
+
+	result := make([]map[string]interface{}, len(versions))
+	for i, v := range versions {
+		result[i] = map[string]interface{}{
+			"id":         v.ID,
+			"skill_id":   v.SkillID,
+			"version":    v.Version,
+			"change_log": v.ChangeLog,
+			"created_at": v.CreatedAt.Format(time.RFC3339),
+			"created_by": v.CreatedBy,
+		}
+	}
+
+	return result, nil
+}
+
+// RollbackSkill 回滚技能
+func (a *App) RollbackSkill(skillID string, versionID string) (map[string]interface{}, error) {
+	skillManager := a.genkitManager.GetSkillManager()
+	if skillManager == nil {
+		return nil, fmt.Errorf("skill manager not initialized")
+	}
+
+	skill, err := skillManager.RollbackSkill(skillID, versionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to rollback skill: %w", err)
+	}
+
+	return map[string]interface{}{
+		"id":      skill.ID,
+		"name":    skill.Name,
+		"version": skill.Version,
+	}, nil
+}
+
+// getStringParam 辅助函数：从 map 中安全获取字符串参数
+func getStringParam(params map[string]interface{}, key string) string {
+	if v, ok := params[key].(string); ok {
+		return v
+	}
+	return ""
 }
 
 // ==================== 记忆管理 API ====================

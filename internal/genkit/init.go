@@ -418,6 +418,7 @@ func (gm *GenkitManager) initToolRegistry() error {
 	stats := toolRegistry.GetToolStatistics()
 	utils.Info("工具注册表初始化完成，注册工具数量: %d", stats["total_tools"])
 
+	gm.toolRegistry = toolRegistry
 	return nil
 }
 
@@ -626,6 +627,7 @@ func (gm *GenkitManager) initMemoryManager() error {
 
 	// 获取记忆数据库路径
 	dbPath := "./data/memory.db"
+	semanticDir := "./data/memory"
 
 	// 创建记忆组件
 	workingMemory := memory.NewWorkingMemoryManager(100, 24*time.Hour)
@@ -634,7 +636,7 @@ func (gm *GenkitManager) initMemoryManager() error {
 		return fmt.Errorf("failed to create episodic memory: %w", err)
 	}
 
-	semanticMemory, err := memory.NewSemanticMemory(dbPath)
+	semanticMemory, err := memory.NewSemanticMemory(semanticDir)
 	if err != nil {
 		return fmt.Errorf("failed to create semantic memory: %w", err)
 	}

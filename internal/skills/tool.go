@@ -11,11 +11,12 @@ import (
 
 // SkillManager 技能管理器
 type SkillManager struct {
-	registry  *Registry
-	generator *Generator
-	validator *Validator
-	loader    *ProgressiveLoader
-	trigger   *TriggerManager
+	registry       *Registry
+	generator      *Generator
+	validator      *Validator
+	loader         *ProgressiveLoader
+	trigger        *TriggerManager
+	onlineImporter *OnlineImporter
 }
 
 // NewSkillManager 创建技能管理器
@@ -32,13 +33,17 @@ func NewSkillManager(skillsDir string, llm LLMClient) (*SkillManager, error) {
 	loader := NewProgressiveLoader(registry, DefaultLoaderOptions())
 	trigger := NewTriggerManager(registry)
 
-	return &SkillManager{
+	sm := &SkillManager{
 		registry:  registry,
 		generator: generator,
 		validator: validator,
 		loader:    loader,
 		trigger:   trigger,
-	}, nil
+	}
+
+	sm.onlineImporter = NewOnlineImporter(registry)
+
+	return sm, nil
 }
 
 // ProcessTaskExecution 处理任务执行记录
@@ -171,20 +176,48 @@ func (sm *SkillManager) ValidateSkill(skillID string) (*ValidationReport, error)
 	return report, nil
 }
 
-// UpdateSkill 更新技能
-func (sm *SkillManager) UpdateSkill(skill *Skill) error {
+// UpdateSkill 更新技能（自动保存版本历史）
+func (sm *SkillManager) UpdateSkill(skill *Skill, changeLog string) error {
+	// 保存当前版本快照
+	if _, err := sm.registry.SaveVersion(skill.ID, "auto-save before update: "+changeLog, "system"); err != nil {
+		// 非致命错误，继续执行更新
+		fmt.Printf("Warning: failed to save version snapshot: %v\n", err)
+	}
+
 	// 重新验证
 	report := sm.validator.Validate(skill)
 	if !report.OverallPass {
 		return fmt.Errorf("skill validation failed: %v", report.CriticalFailures)
 	}
 
+	// 递增版本号
+	skill.BumpVersion("patch")
+
 	return sm.registry.Update(skill)
+}
+
+// CreateSkill 创建新技能
+func (sm *SkillManager) CreateSkill(skill *Skill) error {
+	report := sm.validator.Validate(skill)
+	if !report.OverallPass {
+		return fmt.Errorf("skill validation failed: %v", report.CriticalFailures)
+	}
+	return sm.registry.Register(skill)
 }
 
 // DeleteSkill 删除技能
 func (sm *SkillManager) DeleteSkill(skillID string) error {
 	return sm.registry.Delete(skillID)
+}
+
+// GetSkillVersions 获取技能版本历史
+func (sm *SkillManager) GetSkillVersions(skillID string) ([]*SkillVersion, error) {
+	return sm.registry.GetVersions(skillID)
+}
+
+// RollbackSkill 回滚技能到指定版本
+func (sm *SkillManager) RollbackSkill(skillID string, versionID string) (*Skill, error) {
+	return sm.registry.Rollback(skillID, versionID)
 }
 
 // SearchSkills 搜索技能

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -73,17 +75,6 @@ func NewEpisodicMemory(dbPath string) (*EpisodicMemory, error) {
 	em := &EpisodicMemory{
 		dbPath: dbPath,
 		initSQL: []string{
-			// WAL模式支持并发读取
-			`PRAGMA journal_mode=WAL`,
-			// 同步级别NORMAL提升写入性能
-			`PRAGMA synchronous=NORMAL`,
-			// 64MB缓存
-			`PRAGMA cache_size=-64000`,
-			// 临时存储使用内存
-			`PRAGMA temp_store=MEMORY`,
-			// 启用内存映射IO
-			`PRAGMA mmap_size=268435456`,
-
 			// 主表
 			`CREATE TABLE IF NOT EXISTS memories (
 				id TEXT PRIMARY KEY,
@@ -181,7 +172,30 @@ func NewEpisodicMemory(dbPath string) (*EpisodicMemory, error) {
 
 // initialize 初始化数据库
 func (em *EpisodicMemory) initialize() error {
-	// 执行初始化SQL
+	// 确保数据库目录存在
+	dir := filepath.Dir(em.dbPath)
+	if dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("failed to create database directory %s: %w", dir, err)
+		}
+	}
+
+	// 先执行PRAGMA设置（需要在首次连接时执行）
+	pragmas := []string{
+		`PRAGMA journal_mode=WAL`,
+		`PRAGMA synchronous=NORMAL`,
+		`PRAGMA cache_size=-64000`,
+		`PRAGMA temp_store=MEMORY`,
+		`PRAGMA mmap_size=268435456`,
+	}
+	for _, pragma := range pragmas {
+		if _, err := em.db.Exec(pragma); err != nil {
+			// PRAGMA失败不阻断初始化，仅记录
+			fmt.Printf("Warning: failed to execute PRAGMA: %s, error: %v\n", pragma, err)
+		}
+	}
+
+	// 执行初始化SQL（DDL语句）
 	for _, sql := range em.initSQL {
 		if _, err := em.db.Exec(sql); err != nil {
 			return fmt.Errorf("failed to execute SQL: %s, error: %w", sql, err)

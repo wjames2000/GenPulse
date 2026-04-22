@@ -22,6 +22,10 @@ export function CreateHistoryRecord(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['CreateHistoryRecord'](arg1, arg2, arg3, arg4, arg5);
 }
 
+export function CreateSkill(arg1) {
+  return window['go']['main']['App']['CreateSkill'](arg1);
+}
+
 export function DeleteHistoryRecord(arg1) {
   return window['go']['main']['App']['DeleteHistoryRecord'](arg1);
 }
@@ -138,8 +142,16 @@ export function GetSkillStats() {
   return window['go']['main']['App']['GetSkillStats']();
 }
 
+export function GetSkillVersions(arg1) {
+  return window['go']['main']['App']['GetSkillVersions'](arg1);
+}
+
 export function GetSkills() {
   return window['go']['main']['App']['GetSkills']();
+}
+
+export function GetStartupPhase() {
+  return window['go']['main']['App']['GetStartupPhase']();
 }
 
 export function Greet(arg1) {
@@ -154,8 +166,20 @@ export function ImportSkill(arg1, arg2) {
   return window['go']['main']['App']['ImportSkill'](arg1, arg2);
 }
 
+export function ImportSkillFromOnline(arg1, arg2) {
+  return window['go']['main']['App']['ImportSkillFromOnline'](arg1, arg2);
+}
+
+export function ImportSkillFromURL(arg1) {
+  return window['go']['main']['App']['ImportSkillFromURL'](arg1);
+}
+
 export function ListAgents() {
   return window['go']['main']['App']['ListAgents']();
+}
+
+export function ListOnlineSources() {
+  return window['go']['main']['App']['ListOnlineSources']();
 }
 
 export function LogMessage(arg1, arg2) {
@@ -172,6 +196,14 @@ export function QueryHistoryRecords(arg1) {
 
 export function RemoveMCPServer(arg1) {
   return window['go']['main']['App']['RemoveMCPServer'](arg1);
+}
+
+export function RollbackSkill(arg1, arg2) {
+  return window['go']['main']['App']['RollbackSkill'](arg1, arg2);
+}
+
+export function SearchOnlineSkills(arg1, arg2) {
+  return window['go']['main']['App']['SearchOnlineSkills'](arg1, arg2);
 }
 
 export function SearchSkills(arg1, arg2) {
@@ -200,6 +232,10 @@ export function UpdateMCPConfig(arg1) {
 
 export function UpdateMCPServer(arg1, arg2) {
   return window['go']['main']['App']['UpdateMCPServer'](arg1, arg2);
+}
+
+export function UpdateSkill(arg1, arg2) {
+  return window['go']['main']['App']['UpdateSkill'](arg1, arg2);
 }
 
 export function ValidateSkill(arg1) {

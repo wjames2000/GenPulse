@@ -69,6 +69,15 @@ export interface SkillDetails extends Skill {
   source_task_id: string;
 }
 
+export interface SkillVersion {
+  id: string;
+  skill_id: string;
+  version: string;
+  change_log: string;
+  created_at: string;
+  created_by: string;
+}
+
 export interface EpisodicMemory {
   id: string;
   task_id: string;
@@ -201,8 +210,8 @@ class ApiService {
       const agents = await App.ListAgents();
       return agents || [];
     } catch (error) {
-      console.error('Failed to list agents:', error);
-      return [];
+      console.warn('Failed to list agents (backend may still be initializing):', error);
+      return this.getMockAgents();
     }
   }
 
@@ -219,7 +228,7 @@ class ApiService {
     try {
       return await App.GetAllAgentsStatus();
     } catch (error) {
-      console.error('Failed to get all agents status:', error);
+      console.warn('Failed to get all agents status (backend may still be initializing):', error);
       return {};
     }
   }
@@ -348,9 +357,7 @@ class ApiService {
 
   async getSkills(): Promise<Skill[]> {
     try {
-      // 注意：这里需要等待Wails生成新的绑定
-      // 暂时返回模拟数据
-      return this.getMockSkills();
+      return await App.GetSkills();
     } catch (error) {
       console.error('Failed to get skills:', error);
       return this.getMockSkills();
@@ -359,9 +366,7 @@ class ApiService {
 
   async getSkillDetails(skillId: string): Promise<SkillDetails> {
     try {
-      // 注意：这里需要等待Wails生成新的绑定
-      // 暂时返回模拟数据
-      return this.getMockSkillDetails(skillId);
+      return await App.GetSkillDetails(skillId);
     } catch (error) {
       console.error(`Failed to get skill details for ${skillId}:`, error);
       return this.getMockSkillDetails(skillId);
@@ -370,8 +375,7 @@ class ApiService {
 
   async enableSkill(skillId: string): Promise<boolean> {
     try {
-      // 注意：这里需要等待Wails生成新的绑定
-      console.log(`Enabling skill: ${skillId}`);
+      await App.EnableSkill(skillId);
       return true;
     } catch (error) {
       console.error(`Failed to enable skill ${skillId}:`, error);
@@ -381,8 +385,7 @@ class ApiService {
 
   async disableSkill(skillId: string): Promise<boolean> {
     try {
-      // 注意：这里需要等待Wails生成新的绑定
-      console.log(`Disabling skill: ${skillId}`);
+      await App.DisableSkill(skillId);
       return true;
     } catch (error) {
       console.error(`Failed to disable skill ${skillId}:`, error);
@@ -392,22 +395,104 @@ class ApiService {
 
   async validateSkill(skillId: string): Promise<any> {
     try {
-      // 注意：这里需要等待Wails生成新的绑定
-      console.log(`Validating skill: ${skillId}`);
-      return { overall_pass: true, timestamp: new Date().toISOString() };
+      return await App.ValidateSkill(skillId);
     } catch (error) {
       console.error(`Failed to validate skill ${skillId}:`, error);
       return { overall_pass: false, timestamp: new Date().toISOString() };
     }
   }
 
+  async deleteSkill(skillId: string): Promise<boolean> {
+    try {
+      await App.DeleteSkill(skillId);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete skill ${skillId}:`, error);
+      return false;
+    }
+  }
+
+  async createSkill(params: Record<string, any>): Promise<any> {
+    try {
+      return await App.CreateSkill(params);
+    } catch (error) {
+      console.error('Failed to create skill:', error);
+      throw error;
+    }
+  }
+
+  async updateSkill(skillId: string, params: Record<string, any>): Promise<boolean> {
+    try {
+      await App.UpdateSkill(skillId, params);
+      return true;
+    } catch (error) {
+      console.error(`Failed to update skill ${skillId}:`, error);
+      return false;
+    }
+  }
+
+  async getSkillVersions(skillId: string): Promise<SkillVersion[]> {
+    try {
+      return await App.GetSkillVersions(skillId);
+    } catch (error) {
+      console.error(`Failed to get skill versions for ${skillId}:`, error);
+      return [];
+    }
+  }
+
+  async rollbackSkill(skillId: string, versionId: string): Promise<any> {
+    try {
+      return await App.RollbackSkill(skillId, versionId);
+    } catch (error) {
+      console.error(`Failed to rollback skill ${skillId} to ${versionId}:`, error);
+      throw error;
+    }
+  }
+
   async getSkillStats(): Promise<any> {
     try {
-      // 注意：这里需要等待Wails生成新的绑定
-      return this.getMockSkillStats();
+      return await App.GetSkillStats();
     } catch (error) {
       console.error('Failed to get skill stats:', error);
       return this.getMockSkillStats();
+    }
+  }
+
+  // ==================== 在线技能导入 API ====================
+
+  async listOnlineSources(): Promise<any[]> {
+    try {
+      return await App.ListOnlineSources();
+    } catch (error) {
+      console.error('Failed to list online sources:', error);
+      return [];
+    }
+  }
+
+  async importSkillFromURL(rawURL: string): Promise<any> {
+    try {
+      return await App.ImportSkillFromURL(rawURL);
+    } catch (error) {
+      console.error('Failed to import skill from URL:', error);
+      throw error;
+    }
+  }
+
+  async importSkillFromOnline(source: string, skillID: string): Promise<any> {
+    try {
+      return await App.ImportSkillFromOnline(source, skillID);
+    } catch (error) {
+      console.error('Failed to import skill from online:', error);
+      throw error;
+    }
+  }
+
+  async searchOnlineSkills(query: string, source: string): Promise<any[]> {
+    try {
+      return await App.SearchOnlineSkills(query, source);
+    } catch (error) {
+      console.error('Failed to search online skills:', error);
+      return [];
     }
   }
 
@@ -456,6 +541,51 @@ class ApiService {
   }
 
   // ==================== 模拟数据 ====================
+
+  private getMockAgents() {
+    return [
+      {
+        id: "orchestrator-1",
+        name: "编排者",
+        role: "Orchestrator",
+        description: "协调多个Agent协同工作",
+        model_config: { type: "gemini", name: "gemini-1.5-pro", provider: "google" },
+        capabilities: ["task_decomposition", "agent_coordination", "progress_tracking"],
+        tools: ["fs_read", "fs_write", "shell_exec", "git_commit"],
+        enabled: true,
+      },
+      {
+        id: "architect-1",
+        name: "架构师",
+        role: "Architect",
+        description: "设计系统架构和技术方案",
+        model_config: { type: "gemini", name: "gemini-1.5-pro", provider: "google" },
+        capabilities: ["system_design", "tech_stack_planning", "database_schema_design"],
+        tools: ["fs_read", "fs_write", "llm"],
+        enabled: true,
+      },
+      {
+        id: "backend-1",
+        name: "后端开发",
+        role: "Backend",
+        description: "实现后端服务和API",
+        model_config: { type: "gemini", name: "gemini-1.5-pro", provider: "google" },
+        capabilities: ["api_development", "database_operations", "code_generation"],
+        tools: ["fs_read", "fs_write", "shell_exec", "git_commit"],
+        enabled: true,
+      },
+      {
+        id: "frontend-1",
+        name: "前端开发",
+        role: "Frontend",
+        description: "实现前端界面和交互",
+        model_config: { type: "gemini", name: "gemini-1.5-pro", provider: "google" },
+        capabilities: ["ui_development", "component_design", "responsive_layout"],
+        tools: ["fs_read", "fs_write", "llm"],
+        enabled: true,
+      },
+    ];
+  }
 
   private getMockSkills(): Skill[] {
     const now = new Date();

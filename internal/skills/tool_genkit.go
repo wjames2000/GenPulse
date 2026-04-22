@@ -73,7 +73,7 @@ func (st *SkillTool) ValidateSkillTool(ctx context.Context, input *ValidateSkill
 
 // UpdateSkillTool 更新技能的工具
 func (st *SkillTool) UpdateSkillTool(ctx context.Context, input *UpdateSkillInput) error {
-	return st.manager.UpdateSkill(input.Skill)
+	return st.manager.UpdateSkill(input.Skill, "genkit-tool-update")
 }
 
 // DeleteSkillTool 删除技能的工具
