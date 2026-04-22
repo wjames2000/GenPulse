@@ -351,7 +351,8 @@ func (wm *WorkingMemory) Merge(other *WorkingMemory, overwrite bool) {
 	defer other.mu.RUnlock()
 
 	for k, v := range other.data {
-		if overwrite || !wm.HasKey(k) {
+		_, exists := wm.data[k]
+		if overwrite || !exists {
 			wm.data[k] = v
 		}
 	}

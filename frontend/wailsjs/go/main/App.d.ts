@@ -7,6 +7,12 @@ export function CancelAgentExecution(arg1:string):Promise<void>;
 
 export function ClearLogs():Promise<void>;
 
+export function ControlReplay(arg1:string,arg2:string,arg3:Record<string, any>):Promise<Record<string, any>>;
+
+export function CreateHistoryRecord(arg1:string,arg2:string,arg3:string,arg4:Record<string, any>,arg5:Array<string>):Promise<Record<string, any>>;
+
+export function DeleteHistoryRecord(arg1:string):Promise<void>;
+
 export function DeleteSkill(arg1:string):Promise<void>;
 
 export function DisableSkill(arg1:string):Promise<void>;
@@ -29,6 +35,10 @@ export function GetEpisodicMemories(arg1:string,arg2:number):Promise<Array<Recor
 
 export function GetEvolutionBenefits():Promise<Record<string, any>>;
 
+export function GetHistoryRecord(arg1:string):Promise<Record<string, any>>;
+
+export function GetHistoryStatistics(arg1:string,arg2:string):Promise<Record<string, any>>;
+
 export function GetLogStatistics():Promise<Record<string, any>>;
 
 export function GetLogs():Promise<Array<Record<string, any>>>;
@@ -48,6 +58,10 @@ export function GetMCPTools():Promise<Array<Record<string, any>>>;
 export function GetMemoryStats():Promise<Record<string, any>>;
 
 export function GetRelatedSkills(arg1:string):Promise<Array<Record<string, any>>>;
+
+export function GetReplayData(arg1:string,arg2:number,arg3:number):Promise<Array<Record<string, any>>>;
+
+export function GetReplayState(arg1:string):Promise<Record<string, any>>;
 
 export function GetSemanticMemory():Promise<Record<string, any>>;
 
@@ -69,11 +83,19 @@ export function LogMessage(arg1:string,arg2:string):Promise<void>;
 
 export function LogMessageWithDetails(arg1:string,arg2:string,arg3:Record<string, any>,arg4:string,arg5:string,arg6:Array<string>,arg7:number):Promise<void>;
 
+export function QueryHistoryRecords(arg1:Record<string, any>):Promise<Array<Record<string, any>>>;
+
 export function RemoveMCPServer(arg1:string):Promise<void>;
 
 export function SearchSkills(arg1:string,arg2:Record<string, any>):Promise<Array<Record<string, any>>>;
 
+export function StartReplay(arg1:string,arg2:number):Promise<Record<string, any>>;
+
+export function SubscribeToReplayEvents(arg1:string):Promise<void>;
+
 export function TestMCPServerConnection(arg1:string):Promise<Record<string, any>>;
+
+export function UpdateHistoryRecord(arg1:string,arg2:Record<string, any>):Promise<Record<string, any>>;
 
 export function UpdateMCPConfig(arg1:Record<string, any>):Promise<void>;
 
