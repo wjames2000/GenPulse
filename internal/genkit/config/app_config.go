@@ -38,6 +38,12 @@ type AppConfig struct {
 	EnableAutoSave   bool `json:"enable_auto_save"`
 	AutoSaveInterval int  `json:"auto_save_interval"` // 秒
 	MaxHistoryItems  int  `json:"max_history_items"`
+
+	// 启动优化设置
+	StartupPhase1TimeoutMs int  `json:"startup_phase1_timeout_ms"`
+	LazyInitMCP            bool `json:"lazy_init_mcp"`
+	LazyInitSkills         bool `json:"lazy_init_skills"`
+	PreloadConfig          bool `json:"preload_config"`
 }
 
 // DefaultConfig 默认配置
@@ -57,6 +63,11 @@ func DefaultConfig() *AppConfig {
 		EnableAutoSave:   true,
 		AutoSaveInterval: 300, // 5分钟
 		MaxHistoryItems:  100,
+
+		StartupPhase1TimeoutMs: 500,
+		LazyInitMCP:            true,
+		LazyInitSkills:         true,
+		PreloadConfig:          true,
 	}
 }
 

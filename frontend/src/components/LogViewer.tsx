@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Search, 
   Filter, 
@@ -22,12 +22,21 @@ import {
   ZoomIn,
   ZoomOut,
   Calendar,
-  User
+  User,
+  ArrowDownToLine,
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import { LogEntry, Agent } from '../types';
 import { api } from '../services/api';
+import { useVirtualScroll } from '../hooks/useVirtualScroll';
+
+const LOG_ITEM_HEIGHT = 72;
+const LOG_ITEM_HEIGHT_COMPACT = 56;
+const LOG_ITEM_HEIGHT_EXPANDED = 200;
+const PERF_MODE_THRESHOLD = 1000;
+const ANIMATION_THRESHOLD = 500;
 
 interface LogViewerProps {
   className?: string;
@@ -50,7 +59,6 @@ export default function LogViewer({
   onLogClick 
 }: LogViewerProps) {
   const [logs, setLogs] = useState<LogEntry[]>(initialLogs);
-  const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>(initialLogs);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<LogLevel>('all');
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('all');
@@ -60,6 +68,12 @@ export default function LogViewer({
   const [isFiltersOpen, setIsFiltersOpen] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
+  const [perfMode, setPerfMode] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout>();
+  const prevLogsLengthRef = useRef(0);
+
   const [logLevels] = useState<{ level: LogLevel; label: string; icon: React.ReactNode; count: number }[]>([
     { level: 'all', label: '全部', icon: <Filter className="w-4 h-4" />, count: 0 },
     { level: 'error', label: '错误', icon: <XCircle className="w-4 h-4" />, count: 0 },
@@ -77,11 +91,7 @@ export default function LogViewer({
     { range: 'today', label: '今天', icon: <Calendar className="w-4 h-4" /> },
     { range: 'custom', label: '自定义', icon: <Calendar className="w-4 h-4" /> },
   ]);
-  const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
-  const logsEndRef = useRef<HTMLDivElement>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout>();
 
-  // 获取日志数据
   const fetchLogs = async () => {
     try {
       setIsRefreshing(true);
@@ -107,7 +117,6 @@ export default function LogViewer({
     }
   };
 
-  // 获取Agent列表
   const fetchAgents = async () => {
     try {
       const agentsList = await api.listAgents();
@@ -132,20 +141,17 @@ export default function LogViewer({
     }
   };
 
-  // 初始化数据
   useEffect(() => {
     fetchLogs();
     fetchAgents();
   }, []);
 
-  // 设置自动刷新
   useEffect(() => {
     if (isAutoRefresh) {
-      refreshIntervalRef.current = setInterval(fetchLogs, 5000); // 每5秒刷新
+      refreshIntervalRef.current = setInterval(fetchLogs, 5000);
     } else if (refreshIntervalRef.current) {
       clearInterval(refreshIntervalRef.current);
     }
-
     return () => {
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
@@ -153,11 +159,8 @@ export default function LogViewer({
     };
   }, [isAutoRefresh]);
 
-  // 过滤日志
-  useEffect(() => {
+  const filteredLogs = useMemo(() => {
     let filtered = [...logs];
-
-    // 按搜索查询过滤
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(log => 
@@ -166,17 +169,12 @@ export default function LogViewer({
         log.tags?.some(tag => tag.toLowerCase().includes(query))
       );
     }
-
-    // 按日志级别过滤
     if (selectedLevel !== 'all') {
       filtered = filtered.filter(log => log.level === selectedLevel);
     }
-
-    // 按时间范围过滤
     if (selectedTimeRange !== 'all') {
       const now = new Date();
       let cutoffTime = new Date();
-      
       switch (selectedTimeRange) {
         case '5m':
           cutoffTime.setMinutes(now.getMinutes() - 5);
@@ -191,39 +189,57 @@ export default function LogViewer({
           cutoffTime.setHours(0, 0, 0, 0);
           break;
       }
-
       filtered = filtered.filter(log => {
         const logTime = new Date(log.timestamp);
         return logTime >= cutoffTime;
       });
     }
-
-    // 按Agent过滤
     if (selectedAgent !== 'all') {
       filtered = filtered.filter(log => log.agentId === selectedAgent);
     }
-
-    setFilteredLogs(filtered);
-
-    // 更新日志级别计数
-    const levelCounts = logLevels.map(levelInfo => {
-      if (levelInfo.level === 'all') {
-        return { ...levelInfo, count: logs.length };
-      }
-      const count = logs.filter(log => log.level === levelInfo.level).length;
-      return { ...levelInfo, count };
-    });
-    // 注意：这里需要更新logLevels的状态，但为了简化，我们直接使用
+    return filtered;
   }, [logs, searchQuery, selectedLevel, selectedTimeRange, selectedAgent]);
 
-  // 滚动到底部
-  useEffect(() => {
-    if (logsEndRef.current && isAutoRefresh) {
-      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [filteredLogs, isAutoRefresh]);
+  const totalLogCount = logs.length;
+  const shouldDisableAnimations = totalLogCount > ANIMATION_THRESHOLD || perfMode;
+  const shouldEnablePerfMode = totalLogCount > PERF_MODE_THRESHOLD;
 
-  // 切换日志展开状态
+  useEffect(() => {
+    if (shouldEnablePerfMode) {
+      setPerfMode(true);
+    }
+  }, [shouldEnablePerfMode]);
+
+  const getItemHeight = useCallback(
+    (index: number): number => {
+      const log = filteredLogs[index];
+      if (!log) return compact ? LOG_ITEM_HEIGHT_COMPACT : LOG_ITEM_HEIGHT;
+      const baseHeight = compact ? LOG_ITEM_HEIGHT_COMPACT : LOG_ITEM_HEIGHT;
+      if (expandedLogs.has(log.id) && log.details) {
+        return baseHeight + LOG_ITEM_HEIGHT_EXPANDED;
+      }
+      return baseHeight;
+    },
+    [filteredLogs, expandedLogs, compact]
+  );
+
+  const itemHeight = compact ? LOG_ITEM_HEIGHT_COMPACT : LOG_ITEM_HEIGHT;
+
+  const virtual = useVirtualScroll({
+    totalItems: filteredLogs.length,
+    itemHeight,
+    containerRef: scrollContainerRef,
+    overscan: perfMode ? 3 : 10,
+    getItemHeight: perfMode ? undefined : getItemHeight,
+  });
+
+  useEffect(() => {
+    if (virtual.isScrolledToBottom && filteredLogs.length > prevLogsLengthRef.current) {
+      virtual.scrollToBottom();
+    }
+    prevLogsLengthRef.current = filteredLogs.length;
+  }, [filteredLogs.length, virtual.isScrolledToBottom, virtual.scrollToBottom]);
+
   const toggleLogExpansion = (logId: string) => {
     setExpandedLogs(prev => {
       const newSet = new Set(prev);
@@ -236,19 +252,15 @@ export default function LogViewer({
     });
   };
 
-  // 复制日志到剪贴板
   const copyLogToClipboard = (log: LogEntry) => {
     const logText = `[${log.timestamp}] [${log.level.toUpperCase()}] ${log.message}`;
     navigator.clipboard.writeText(logText);
   };
 
-  // 清空日志
   const clearLogs = () => {
     setLogs([]);
-    setFilteredLogs([]);
   };
 
-  // 导出日志
   const exportLogs = () => {
     const logData = filteredLogs.map(log => ({
       timestamp: log.timestamp,
@@ -260,7 +272,6 @@ export default function LogViewer({
       duration: log.duration,
       tags: log.tags,
     }));
-
     const blob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -272,7 +283,6 @@ export default function LogViewer({
     URL.revokeObjectURL(url);
   };
 
-  // 获取日志级别样式
   const getLogLevelStyle = (level: LogLevel) => {
     switch (level) {
       case 'error':
@@ -292,7 +302,6 @@ export default function LogViewer({
     }
   };
 
-  // 获取日志级别图标
   const getLogLevelIcon = (level: LogLevel) => {
     switch (level) {
       case 'error':
@@ -311,7 +320,6 @@ export default function LogViewer({
     }
   };
 
-  // 格式化时间
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('zh-CN', { 
@@ -322,7 +330,6 @@ export default function LogViewer({
     });
   };
 
-  // 格式化日期
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleDateString('zh-CN', {
@@ -332,13 +339,115 @@ export default function LogViewer({
     });
   };
 
+  const renderLogItem = useCallback(
+    (log: LogEntry, index: number) => {
+      const isExpanded = expandedLogs.has(log.id);
+      const isToday = new Date(log.timestamp).toDateString() === new Date().toDateString();
+
+      return (
+        <div
+          key={log.id}
+          className={cn(
+            "rounded-lg border p-3 cursor-pointer transition-all hover:border-white/20 virtual-log-item",
+            getLogLevelStyle(log.level),
+            isExpanded && "border-white/30"
+          )}
+          onClick={() => {
+            toggleLogExpansion(log.id);
+            onLogClick?.(log);
+          }}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3 flex-1">
+              <div className="mt-0.5">
+                {getLogLevelIcon(log.level)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="text-xs font-mono text-white/60">
+                    {isToday ? formatTime(log.timestamp) : formatDate(log.timestamp)}
+                  </span>
+                  <span className={cn(
+                    "text-xs px-1.5 py-0.5 rounded uppercase font-semibold",
+                    getLogLevelStyle(log.level).split(' ')[0]
+                  )}>
+                    {log.level}
+                  </span>
+                  {log.agentId && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-white/60">
+                      {agents.find(a => a.id === log.agentId)?.name || log.agentId}
+                    </span>
+                  )}
+                  {log.duration && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-white/60">
+                      {log.duration}ms
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-white leading-relaxed break-words">
+                  {log.message}
+                </p>
+                {log.tags && log.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {log.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs px-1.5 py-0.5 rounded bg-white/5 text-white/40"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-1 ml-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyLogToClipboard(log);
+                }}
+                className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                title="复制日志"
+              >
+                <Copy className="w-3 h-3" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleLogExpansion(log.id);
+                }}
+                className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                title={isExpanded ? "收起详情" : "展开详情"}
+              >
+                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
+
+          {isExpanded && log.details && (
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <div className="bg-black/20 rounded p-3">
+                <pre className="text-xs text-white/80 font-mono whitespace-pre-wrap break-words">
+                  {typeof log.details === 'string' 
+                    ? log.details 
+                    : JSON.stringify(log.details, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    },
+    [expandedLogs, agents, onLogClick]
+  );
+
   return (
     <div className={cn(
       "flex flex-col bg-background border border-white/10 rounded-lg overflow-hidden",
       isFullscreen ? "fixed inset-4 z-50" : "h-full",
       className
     )}>
-      {/* 工具栏 */}
       <div className="flex items-center justify-between p-4 border-b border-white/10 bg-background/50 backdrop-blur-sm">
         <div className="flex items-center space-x-4">
           <h2 className="text-lg font-semibold text-on-surface">执行日志</h2>
@@ -409,7 +518,6 @@ export default function LogViewer({
         </div>
       </div>
 
-      {/* 过滤器 */}
       <AnimatePresence>
         {showFilters && isFiltersOpen && (
           <motion.div
@@ -419,7 +527,6 @@ export default function LogViewer({
             className="overflow-hidden border-b border-white/10"
           >
             <div className="p-4 space-y-4">
-              {/* 日志级别过滤器 */}
               <div>
                 <h3 className="text-sm font-medium text-white/60 mb-2">日志级别</h3>
                 <div className="flex flex-wrap gap-2">
@@ -451,7 +558,6 @@ export default function LogViewer({
                 </div>
               </div>
 
-              {/* 时间范围过滤器 */}
               <div>
                 <h3 className="text-sm font-medium text-white/60 mb-2">时间范围</h3>
                 <div className="flex flex-wrap gap-2">
@@ -473,7 +579,6 @@ export default function LogViewer({
                 </div>
               </div>
 
-              {/* Agent过滤器 */}
               {agents.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium text-white/60 mb-2">Agent</h3>
@@ -513,7 +618,6 @@ export default function LogViewer({
         )}
       </AnimatePresence>
 
-      {/* 日志统计 */}
       <div className="px-4 py-2 border-b border-white/10 bg-background/30">
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center space-x-4">
@@ -532,7 +636,22 @@ export default function LogViewer({
               </span>
             )}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
+            {totalLogCount > ANIMATION_THRESHOLD && (
+              <button
+                onClick={() => setPerfMode(!perfMode)}
+                className={cn(
+                  "flex items-center space-x-1 px-2 py-1 rounded text-xs transition-colors",
+                  perfMode
+                    ? "bg-yellow-500/20 text-yellow-400"
+                    : "bg-white/5 text-white/40 hover:text-white/60"
+                )}
+                title={perfMode ? "关闭性能模式" : "开启性能模式 (禁用动画，减少DOM)"}
+              >
+                <Zap className="w-3 h-3" />
+                <span>性能模式</span>
+              </button>
+            )}
             <button
               onClick={() => {
                 setSearchQuery('');
@@ -548,11 +667,14 @@ export default function LogViewer({
         </div>
       </div>
 
-      {/* 日志列表 */}
-      <div className={cn(
-        "flex-1 overflow-y-auto",
-        compact ? "p-2" : "p-4"
-      )}>
+      <div
+        ref={scrollContainerRef}
+        onScroll={virtual.onScroll}
+        className={cn(
+          "flex-1 virtual-scroll-container",
+          compact ? "p-2" : "p-4"
+        )}
+      >
         {filteredLogs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-white/40">
             <Terminal className="w-12 h-12 mb-4" />
@@ -560,123 +682,30 @@ export default function LogViewer({
             <p className="text-sm mt-2">开始执行任务后，日志将显示在这里</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {filteredLogs.map((log, index) => {
-              const isExpanded = expandedLogs.has(log.id);
-              const isToday = new Date(log.timestamp).toDateString() === new Date().toDateString();
-              
-              return (
-                <motion.div
-                  key={log.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.01 }}
-                  className={cn(
-                    "rounded-lg border p-3 cursor-pointer transition-all hover:border-white/20",
-                    getLogLevelStyle(log.level),
-                    isExpanded && "border-white/30"
-                  )}
-                  onClick={() => {
-                    toggleLogExpansion(log.id);
-                    onLogClick?.(log);
-                  }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-3 flex-1">
-                      <div className="mt-0.5">
-                        {getLogLevelIcon(log.level)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="text-xs font-mono text-white/60">
-                            {isToday ? formatTime(log.timestamp) : formatDate(log.timestamp)}
-                          </span>
-                          <span className={cn(
-                            "text-xs px-1.5 py-0.5 rounded uppercase font-semibold",
-                            getLogLevelStyle(log.level).split(' ')[0] // 使用背景色类
-                          )}>
-                            {log.level}
-                          </span>
-                          {log.agentId && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-white/60">
-                              {agents.find(a => a.id === log.agentId)?.name || log.agentId}
-                            </span>
-                          )}
-                          {log.duration && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-white/60">
-                              {log.duration}ms
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-white leading-relaxed break-words">
-                          {log.message}
-                        </p>
-                        {log.tags && log.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {log.tags.map((tag, idx) => (
-                              <span
-                                key={idx}
-                                className="text-xs px-1.5 py-0.5 rounded bg-white/5 text-white/40"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-1 ml-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyLogToClipboard(log);
-                        }}
-                        className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors"
-                        title="复制日志"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleLogExpansion(log.id);
-                        }}
-                        className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors"
-                        title={isExpanded ? "收起详情" : "展开详情"}
-                      >
-                        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 展开的详情 */}
-                  <AnimatePresence>
-                    {isExpanded && log.details && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="mt-3 pt-3 border-t border-white/10"
-                      >
-                        <div className="bg-black/20 rounded p-3">
-                          <pre className="text-xs text-white/80 font-mono whitespace-pre-wrap break-words">
-                            {typeof log.details === 'string' 
-                              ? log.details 
-                              : JSON.stringify(log.details, null, 2)}
-                          </pre>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-            <div ref={logsEndRef} />
+          <div
+            className="relative"
+            style={{ height: virtual.totalHeight }}
+          >
+            <div
+              className="space-y-2"
+              style={{ transform: `translateY(${virtual.offsetY}px)` }}
+            >
+              {virtual.visibleItems.map(({ index }) => renderLogItem(filteredLogs[index], index))}
+            </div>
           </div>
+        )}
+
+        {!virtual.isScrolledToBottom && filteredLogs.length > 0 && (
+          <button
+            onClick={virtual.scrollToBottom}
+            className="scroll-to-bottom-btn fixed bottom-20 right-8 z-40 flex items-center space-x-2 px-4 py-2 rounded-full bg-primary/20 text-primary border border-primary/30 backdrop-blur-md hover:bg-primary/30 transition-all shadow-lg"
+          >
+            <ArrowDownToLine className="w-4 h-4" />
+            <span className="text-sm font-medium">滚动到底部</span>
+          </button>
         )}
       </div>
 
-      {/* 底部状态栏 */}
       <div className="px-4 py-2 border-t border-white/10 bg-background/50 flex items-center justify-between text-xs text-white/40">
         <div className="flex items-center space-x-4">
           <span>最后更新: {logs.length > 0 ? formatTime(logs[0].timestamp) : '--:--:--'}</span>
@@ -696,16 +725,23 @@ export default function LogViewer({
               </>
             )}
           </span>
+          {perfMode && (
+            <span className="flex items-center space-x-1 text-yellow-400">
+              <Zap className="w-3 h-3" />
+              <span>性能模式</span>
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-2">
-          <button
-            onClick={() => logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
-            className="hover:text-white transition-colors"
-          >
-            跳到底部
-          </button>
-          <span>|</span>
           <span>日志级别: {selectedLevel}</span>
+          {filteredLogs.length > 0 && (
+            <>
+              <span>|</span>
+              <span>
+                显示 {virtual.startIndex + 1}-{Math.min(virtual.endIndex + 1, filteredLogs.length)} / {filteredLogs.length}
+              </span>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -51,13 +51,13 @@ export const TIMELINE: TimelineEvent[] = [
 ];
 
 export const LOGS: LogEntry[] = [
-  { timestamp: "10:42:01", level: "info", message: "Orchestrator: Spawned new task cluster 'auth_module'" },
-  { timestamp: "10:42:03", level: "info", message: "MessageBus: Routed prompt to Architect ID-4A9B" },
-  { timestamp: "10:42:05", level: "debug", message: "Architect: Analyzing legacy codebase for auth dependencies..." },
-  { timestamp: "10:42:12", level: "success", message: "Architect: Legacy analysis complete. Found 3 deprecation warnings." },
-  { timestamp: "10:42:15", level: "debug", message: "Architect: Generating initial schema proposal..." },
-  { timestamp: "10:42:28", level: "sys", message: "Memory allocation at 64%" },
-  { timestamp: "10:42:35", level: "debug", message: "Architect: Evaluating OAuth2 vs JWT implementation paths..." },
+  { id: "log-1", timestamp: "10:42:01", level: "info", message: "Orchestrator: Spawned new task cluster 'auth_module'" },
+  { id: "log-2", timestamp: "10:42:03", level: "info", message: "MessageBus: Routed prompt to Architect ID-4A9B" },
+  { id: "log-3", timestamp: "10:42:05", level: "debug", message: "Architect: Analyzing legacy codebase for auth dependencies..." },
+  { id: "log-4", timestamp: "10:42:12", level: "success", message: "Architect: Legacy analysis complete. Found 3 deprecation warnings." },
+  { id: "log-5", timestamp: "10:42:15", level: "debug", message: "Architect: Generating initial schema proposal..." },
+  { id: "log-6", timestamp: "10:42:28", level: "sys", message: "Memory allocation at 64%" },
+  { id: "log-7", timestamp: "10:42:35", level: "debug", message: "Architect: Evaluating OAuth2 vs JWT implementation paths..." },
 ];
 
 export const THOUGHTS: Thought[] = [

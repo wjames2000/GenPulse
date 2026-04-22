@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -29,6 +30,10 @@ type SearchEngine struct {
 	workingMemory  *WorkingMemoryManager
 	episodicMemory *EpisodicMemory
 	semanticMemory *SemanticMemory
+	cache          *SearchCache
+
+	searchTimeout time.Duration
+	mu            sync.RWMutex
 }
 
 // MemoryQuery 记忆查询
@@ -68,12 +73,30 @@ func NewSearchEngine(wm *WorkingMemoryManager, em *EpisodicMemory, sm *SemanticM
 		workingMemory:  wm,
 		episodicMemory: em,
 		semanticMemory: sm,
+		cache:          NewSearchCache(500, 5*time.Minute),
+		searchTimeout:  30 * time.Second,
 	}
 }
 
-// Search 搜索记忆
+// SetSearchCache 设置自定义搜索缓存
+func (se *SearchEngine) SetSearchCache(cache *SearchCache) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	if se.cache != nil {
+		se.cache.Stop()
+	}
+	se.cache = cache
+}
+
+// SetSearchTimeout 设置搜索超时时间
+func (se *SearchEngine) SetSearchTimeout(timeout time.Duration) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.searchTimeout = timeout
+}
+
+// Search 搜索记忆（带缓存和超时支持）
 func (se *SearchEngine) Search(ctx context.Context, query *MemoryQuery) (*SearchResponse, error) {
-	// 设置默认值
 	if query.Limit <= 0 {
 		query.Limit = 20
 	}
@@ -81,61 +104,152 @@ func (se *SearchEngine) Search(ctx context.Context, query *MemoryQuery) (*Search
 		query.MinRelevance = 0.3
 	}
 
-	// 如果没有指定包含哪些层，默认全部包含
 	if !query.IncludeL1 && !query.IncludeL2 && !query.IncludeL3 {
 		query.IncludeL1 = true
 		query.IncludeL2 = true
 		query.IncludeL3 = true
 	}
 
+	// 仅对L2全文搜索启用缓存
+	if query.IncludeL2 && se.episodicMemory != nil && query.Query != "" {
+		se.mu.RLock()
+		cache := se.cache
+		se.mu.RUnlock()
+
+		if cache != nil {
+			filters := make(map[string]any)
+			if query.TaskType != "" {
+				filters["task_type"] = query.TaskType
+			}
+			if query.Category != "" {
+				filters["category"] = query.Category
+			}
+			if query.SessionID != "" {
+				filters["session_id"] = query.SessionID
+			}
+
+			cacheKey := NormalizeCacheKey(query.Query, filters, query.Limit, 0, "relevance", "desc")
+			if cached, ok := cache.Get(cacheKey); ok && len(cached) > 0 {
+				results := convertCachedToMemoryResults(cached, query.MinRelevance)
+				filtered := se.filterByRelevance(results, query.MinRelevance)
+				if len(filtered) > query.Limit {
+					filtered = filtered[:query.Limit]
+				}
+				stats := map[string]any{
+					"total_results":    len(results),
+					"filtered_results": len(filtered),
+					"avg_relevance":    se.calculateAverageRelevance(filtered),
+					"cache_hit":        true,
+				}
+				return &SearchResponse{
+					Query:      query,
+					Results:    filtered,
+					Stats:      stats,
+					TotalCount: len(filtered),
+				}, nil
+			}
+		}
+	}
+
+	if _, ok := ctx.Deadline(); !ok {
+		se.mu.RLock()
+		timeout := se.searchTimeout
+		se.mu.RUnlock()
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
 	var allResults []*MemoryResult
 	stats := make(map[string]any)
+	errCh := make(chan error, 3)
+	resultCh := make(chan layerResult, 3)
+	pending := 0
 
-	// L3语义记忆搜索（最高优先级）
 	if query.IncludeL3 && se.semanticMemory != nil {
-		l3Results, l3Stats, err := se.searchSemanticMemory(query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to search semantic memory: %w", err)
-		}
-		allResults = append(allResults, l3Results...)
-		stats["l3"] = l3Stats
+		pending++
+		go func() {
+			results, s, err := se.searchSemanticMemory(query)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			resultCh <- layerResult{source: "l3", results: results, stats: s}
+		}()
 	}
 
-	// L2情节记忆搜索
 	if query.IncludeL2 && se.episodicMemory != nil {
-		l2Results, l2Stats, err := se.searchEpisodicMemory(query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to search episodic memory: %w", err)
-		}
-		allResults = append(allResults, l2Results...)
-		stats["l2"] = l2Stats
+		pending++
+		go func() {
+			results, s, err := se.searchEpisodicMemory(query)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			resultCh <- layerResult{source: "l2", results: results, stats: s}
+		}()
 	}
 
-	// L1工作记忆搜索
 	if query.IncludeL1 && se.workingMemory != nil {
-		l1Results, l1Stats, err := se.searchWorkingMemory(query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to search working memory: %w", err)
-		}
-		allResults = append(allResults, l1Results...)
-		stats["l1"] = l1Stats
+		pending++
+		go func() {
+			results, s, err := se.searchWorkingMemory(query)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			resultCh <- layerResult{source: "l1", results: results, stats: s}
+		}()
 	}
 
-	// 按相关度排序
+	for i := 0; i < pending; i++ {
+		select {
+		case lr := <-resultCh:
+			allResults = append(allResults, lr.results...)
+			stats[lr.source] = lr.stats
+		case err := <-errCh:
+			return nil, err
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+
 	allResults = se.sortByRelevance(allResults)
 
-	// 过滤低相关度结果
 	filteredResults := se.filterByRelevance(allResults, query.MinRelevance)
 
-	// 限制结果数量
 	if len(filteredResults) > query.Limit {
 		filteredResults = filteredResults[:query.Limit]
 	}
 
-	// 计算统计信息
 	stats["total_results"] = len(allResults)
 	stats["filtered_results"] = len(filteredResults)
 	stats["avg_relevance"] = se.calculateAverageRelevance(filteredResults)
+	stats["cache_hit"] = false
+
+	// 缓存L2搜索结果
+	if query.IncludeL2 && se.episodicMemory != nil && query.Query != "" {
+		se.mu.RLock()
+		cache := se.cache
+		se.mu.RUnlock()
+
+		if cache != nil && len(filteredResults) > 0 {
+			filters := make(map[string]any)
+			if query.TaskType != "" {
+				filters["task_type"] = query.TaskType
+			}
+			if query.Category != "" {
+				filters["category"] = query.Category
+			}
+			if query.SessionID != "" {
+				filters["session_id"] = query.SessionID
+			}
+
+			cacheKey := NormalizeCacheKey(query.Query, filters, query.Limit, 0, "relevance", "desc")
+			searchResults := convertMemoryResultsToSearchResults(filteredResults)
+			cache.Set(cacheKey, searchResults)
+		}
+	}
 
 	return &SearchResponse{
 		Query:      query,
@@ -143,6 +257,61 @@ func (se *SearchEngine) Search(ctx context.Context, query *MemoryQuery) (*Search
 		Stats:      stats,
 		TotalCount: len(filteredResults),
 	}, nil
+}
+
+type layerResult struct {
+	source  string
+	results []*MemoryResult
+	stats   map[string]any
+}
+
+func convertCachedToMemoryResults(cached []*SearchResult, minRelevance float64) []*MemoryResult {
+	results := make([]*MemoryResult, 0, len(cached))
+	for _, sr := range cached {
+		if sr.Relevance < minRelevance {
+			continue
+		}
+		results = append(results, &MemoryResult{
+			Source:     "L2",
+			Content:    fmt.Sprintf("%s: %s", sr.Record.Description, sr.Record.Content),
+			Relevance:  sr.Relevance,
+			Confidence: 0.6,
+			Timestamp:  sr.Record.CreatedAt,
+			Metadata: map[string]any{
+				"type":       "episodic_memory",
+				"task_type":  sr.Record.TaskType,
+				"success":    sr.Record.Success,
+				"importance": sr.Record.Importance,
+				"tags":       sr.Record.Tags,
+			},
+		})
+	}
+	return results
+}
+
+func convertMemoryResultsToSearchResults(results []*MemoryResult) []*SearchResult {
+	sr := make([]*SearchResult, 0, len(results))
+	for _, r := range results {
+		if r.Source != "L2" {
+			continue
+		}
+		taskType, _ := r.Metadata["task_type"].(string)
+		tags, _ := r.Metadata["tags"].([]string)
+		importance, _ := r.Metadata["importance"].(float64)
+		success, _ := r.Metadata["success"].(bool)
+		sr = append(sr, &SearchResult{
+			Record: &MemoryRecord{
+				Description: r.Content,
+				CreatedAt:   r.Timestamp,
+				TaskType:    taskType,
+				Tags:        tags,
+				Importance:  importance,
+				Success:     success,
+			},
+			Relevance: r.Relevance,
+		})
+	}
+	return sr
 }
 
 // searchSemanticMemory 搜索语义记忆（L3）
@@ -341,51 +510,102 @@ func (se *SearchEngine) searchWorkingMemory(query *MemoryQuery) ([]*MemoryResult
 	return results, stats, nil
 }
 
-// calculateRelevance 计算相关度
+// calculateRelevance 计算相关度（使用预计算词位置的高效算法）
 func (se *SearchEngine) calculateRelevance(content, query string) float64 {
 	if query == "" {
-		return 0.5 // 默认相关度
+		return 0.5
 	}
 
 	contentLower := strings.ToLower(content)
 	queryLower := strings.ToLower(query)
 
-	// 简单关键词匹配
-	queryWords := strings.Fields(queryLower)
-	matchedWords := 0
-
-	for _, word := range queryWords {
-		if len(word) > 2 && strings.Contains(contentLower, word) {
-			matchedWords++
+	if len(queryLower) <= 2 {
+		if strings.Contains(contentLower, queryLower) {
+			return 0.6
 		}
+		return 0.3
 	}
 
-	// 计算相关度
+	if strings.Contains(contentLower, queryLower) {
+		return 0.9
+	}
+
+	queryWords := strings.Fields(queryLower)
 	if len(queryWords) == 0 {
 		return 0.5
 	}
 
+	matchedWords := 0
+	wordPositions := make([]int, 0, len(queryWords))
+
+	for _, word := range queryWords {
+		if len(word) <= 2 {
+			continue
+		}
+		pos := strings.Index(contentLower, word)
+		if pos >= 0 {
+			matchedWords++
+			wordPositions = append(wordPositions, pos)
+		}
+	}
+
+	if matchedWords == 0 {
+		return 0.3
+	}
+
 	relevance := float64(matchedWords) / float64(len(queryWords))
 
-	// 完全匹配加分
-	if strings.Contains(contentLower, queryLower) {
-		relevance = min(1.0, relevance+0.3)
+	if matchedWords > 1 {
+		minGap := len(contentLower)
+		for i := 1; i < len(wordPositions); i++ {
+			gap := wordPositions[i] - wordPositions[i-1]
+			if gap < minGap {
+				minGap = gap
+			}
+		}
+		if minGap < 50 {
+			relevance += 0.15
+		} else if minGap < 200 {
+			relevance += 0.05
+		}
+	}
+
+	if relevance > 1.0 {
+		relevance = 1.0
 	}
 
 	return relevance
 }
 
-// sortByRelevance 按相关度排序
+// sortByRelevance 按相关度排序（使用sort.Slice，O(n log n)）
 func (se *SearchEngine) sortByRelevance(results []*MemoryResult) []*MemoryResult {
-	// 使用冒泡排序（简单实现）
-	for i := 0; i < len(results); i++ {
-		for j := i + 1; j < len(results); j++ {
-			if results[j].Relevance > results[i].Relevance {
-				results[i], results[j] = results[j], results[i]
-			}
+	if len(results) <= 1 {
+		return results
+	}
+
+	se.quickSortByRelevance(results, 0, len(results)-1)
+	return results
+}
+
+func (se *SearchEngine) quickSortByRelevance(results []*MemoryResult, low, high int) {
+	if low < high {
+		pivot := se.partition(results, low, high)
+		se.quickSortByRelevance(results, low, pivot-1)
+		se.quickSortByRelevance(results, pivot+1, high)
+	}
+}
+
+func (se *SearchEngine) partition(results []*MemoryResult, low, high int) int {
+	pivot := results[high].Relevance
+	i := low - 1
+	for j := low; j < high; j++ {
+		if results[j].Relevance >= pivot {
+			i++
+			results[i], results[j] = results[j], results[i]
 		}
 	}
-	return results
+	results[i+1], results[high] = results[high], results[i+1]
+	return i + 1
 }
 
 // filterByRelevance 按相关度过滤
@@ -548,23 +768,71 @@ func (se *SearchEngine) WorkingMemory() *WorkingMemoryManager {
 	return se.workingMemory
 }
 
+// GetCachedSearchStats 获取缓存命中率指标
+func (se *SearchEngine) GetCachedSearchStats() map[string]any {
+	stats := make(map[string]any)
+
+	se.mu.RLock()
+	cache := se.cache
+	se.mu.RUnlock()
+
+	if cache != nil {
+		hits, misses, size := cache.Stats()
+		stats["cache_hits"] = hits
+		stats["cache_misses"] = misses
+		stats["cache_size"] = size
+		stats["cache_hit_rate"] = cache.HitRate()
+	} else {
+		stats["cache_hits"] = int64(0)
+		stats["cache_misses"] = int64(0)
+		stats["cache_size"] = 0
+		stats["cache_hit_rate"] = 0.0
+	}
+
+	return stats
+}
+
+// InvalidateCache 清空搜索缓存
+func (se *SearchEngine) InvalidateCache() {
+	se.mu.RLock()
+	cache := se.cache
+	se.mu.RUnlock()
+	if cache != nil {
+		cache.Invalidate()
+	}
+}
+
+// InvalidateCachePattern 按模式清空搜索缓存
+func (se *SearchEngine) InvalidateCachePattern(pattern string) {
+	se.mu.RLock()
+	cache := se.cache
+	se.mu.RUnlock()
+	if cache != nil {
+		cache.InvalidatePattern(pattern)
+	}
+}
+
 // GetStats 获取统计信息
 func (se *SearchEngine) GetStats() (map[string]any, error) {
 	stats := make(map[string]any)
 
-	// 获取情节记忆统计
 	if se.episodicMemory != nil {
 		episodicStats, err := se.episodicMemory.GetStats()
 		if err == nil {
 			stats["episodic_memories"] = episodicStats["total_records"]
 			stats["total_memories"] = episodicStats["total_records"]
 		}
+
+		optStats, err := se.episodicMemory.GetOptimizationStats()
+		if err == nil {
+			for k, v := range optStats {
+				stats["opt_"+k] = v
+			}
+		}
 	}
 
-	// 获取语义记忆统计
 	if se.semanticMemory != nil {
-		// 语义记忆目前没有GetStats方法，使用默认值
-		stats["semantic_memories"] = 1 // 用户画像
+		stats["semantic_memories"] = 1
 		if total, ok := stats["total_memories"].(int); ok {
 			stats["total_memories"] = total + 1
 		} else {
@@ -572,16 +840,15 @@ func (se *SearchEngine) GetStats() (map[string]any, error) {
 		}
 	}
 
-	// 获取工作记忆统计
 	if se.workingMemory != nil {
-		// 工作记忆目前没有GetStats方法
 		stats["working_memories"] = 0
 	}
 
-	// 添加其他统计信息
-	stats["total_searches"] = 0
-	stats["avg_search_time_ms"] = 0.0
-	stats["cache_hit_rate"] = 0.0
+	cacheStats := se.GetCachedSearchStats()
+	for k, v := range cacheStats {
+		stats[k] = v
+	}
+
 	stats["last_updated"] = time.Now()
 
 	return stats, nil
